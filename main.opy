@@ -26,7 +26,7 @@ settings {
 
 #!define ShopCamPos vect(67.5, 8.5, -27.3)
 #!define ShopLookPos vect(69.5, 8.5, -28.5)
-#!define BloodRadius 4.8
+#!define BloodRadius 4.7
 #!define QuestPos vect(165.7, 12, 36.2)
 #!define BaseFactionMembers 4
 
@@ -61,7 +61,7 @@ globalvar factGoalStrings = [
     "follow orders from sombra."
 ]
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\nyou regen 15 HP/s,\nand start with 25% less damage taken & dealt.\nyou deal 50% more damage to players who kill people in your faction.",
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou regen 15 HP/s and start with 25% less damage taken & dealt.\nyou deal 50% more damage to players who kill people in your faction.\nfaction earnings bonus is doubled for money from healing",
     "heal for 10% of your dealt damage.\nfeeding the blood god increases lifesteal to 40%, gives you 50% more money and 50% faster ult gain.\n40% of damage dealt contributes to your faction goal.",
     "increase your held money by 10% when getting eliminations\nand double money earned from kills,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "double your earnings from quests.\ngain 5% of your max health as temporary armor upon completing them."
@@ -107,7 +107,9 @@ globalvar statCaps = [
     50000
 ]
 globalvar factMembers = [0, 0, 0, 0]
-globalvar factPoints = [0, 0, 0, 0]
+globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
+globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels.
+globalvar factLvUp = [5000, 5000, 5000, 5000]
 globalvar i_init
 globalvar shoppers = []
 globalvar baseStats = [
@@ -121,15 +123,23 @@ globalvar baseStats = [
     100 #objective
 ]
 globalvar stealPortion
+globalvar questText = [
+    "get a killing blow on",
+    "enter the base of",
+    "feed the blood crystal for",
+    "damage other players for a total of"
+]
 
-playervar level = 0
+playervar level = 1
 playervar money
 playervar faction = -1
 playervar enemies = []
 playervar option = 0
 playervar stats = baseStats
-playervar questData = []
-playervar buyqty
+playervar questType = -1
+playervar questProgress
+playervar questGoal
+playervar buyqty # also used for blood god progress tracker for faction
 playervar bloodDoT
 playervar bloodFx
 
@@ -185,13 +195,21 @@ rule "global init":
     createInWorldText(getAllPlayers(), "{} get quest ({})".format(heroIcon(Hero.SOMBRA), buttonString(Button.INTERACT)), vect(165.7, 12, 36.2), 3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     wait()
 
+    ### gold mine ###
+    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, )
+    createInWorldText(getAllPlayers(), "beg from lumerico president ($60/s/player)", )
+
     ### time HUD + shop prompt ###
     hudSubtext(getAllPlayers(), "{}:{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
     hudSubheader(getAllPlayers(), "stand still while holding [{}] and [{}] to enter the shop\n".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT)), HudPosition.LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
-    ### player money/faction/level HUD ###
-    hudText(localPlayer, heroIcon(localPlayer.getCurrentHero()), "level {} | faction: {}".format(localPlayer.level, factNames[localPlayer.faction]), "${}".format(localPlayer.money), HudPosition.LEFT, 0, Color.BLUE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+    ### player money/faction/level/quest HUD ###
+    hudText(localPlayer, heroIcon(localPlayer.getCurrentHero()), "level {}".format(localPlayer.level), "${}".format(localPlayer.money), HudPosition.LEFT, 0, Color.BLUE, Color.BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
     wait()
+    hudText(localPlayer, abilityIconString(Hero.BRIGITTE, Button.ULTIMATE), "faction: {} | income bonus: {}%".format(factNames[localPlayer.faction], factLevels[localPlayer.faction]*10),
+        "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+    wait()
+    hudText(localPlayer, "find sombra in lumerico for a quest" if localPlayer.questType == -1 else "{} {}".format(questText[localPlayer.questType], localPlayer.questGoal), "progress:", localPlayer.questProgress, HudPosition.TOP, 0, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     ### bases ###
     for i_init in range(len(factSpawns)):
@@ -199,7 +217,7 @@ rule "global init":
             Color.BLUE if localPlayer.faction == evalOnce(i_init) else Color.TEAM_2,
             evalOnce(factSpawns[i_init]), 3, EffectReeval.VISIBILITY_AND_COLOR)
         createInWorldText(localPlayer,
-            "your faction's base\nlook down & press [{}] to swap heroes".format(buttonString(Button.INTERACT)) if localPlayer.faction == evalOnce(i_init) else evalOnce("base of {}".format(factNames[i_init])),
+            "your faction's base\nlook down & press [{}] to swap heroes".format(buttonString(Button.INTERACT)) if localPlayer.faction == evalOnce(i_init) else evalOnce("base of {}".format(evalOnce(factNames[i_init]))),
             evalOnce(factSpawns[i_init] + Vector.UP), 2, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
         wait()
 
@@ -279,7 +297,7 @@ rule "shop enter":
 rule "shop scroll":
     @Event eachPlayer
     @Condition eventPlayer in shoppers
-    @Condition eventPlayer.getThrottle() != vect(0,0,0)
+    @Condition eventPlayer.getThrottle().x != 0
     do:
         # smallMessage(eventPlayer, eventPlayer.option)
         if eventPlayer.getThrottle().x > 0:
@@ -376,7 +394,10 @@ rule "enter blood god":
     eventPlayer.bloodFx = getLastCreatedEntity()
 
     # give money
-    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (0.39 if eventPlayer.faction == FACTIONS.BLOOD else 0.3), ChaseReeval.DESTINATION_AND_RATE)
+    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (factLevels[eventPlayer.faction]/10 + (0.39 if eventPlayer.faction == FACTIONS.BLOOD else 0.3)), ChaseReeval.DESTINATION_AND_RATE)
+    if eventPlayer.faction == FACTIONS.BLOOD:
+        eventPlayer.buyqty = 0
+        chase(eventPlayer.buyqty, 99999999999, rate=eventPlayer.stats[STATS.OBJECTIVE]*eventPlayer.getMaxHealth()*0.1, ChaseReeval.DESTINATION_AND_RATE)
 
 rule "leave blood god":
     @Event eachPlayer
@@ -390,26 +411,69 @@ rule "leave blood god":
     eventPlayer.bloodDoT = null
     eventPlayer.bloodFx = null
 
+    if eventPlayer.faction == FACTIONS.BLOOD:
+        stopChasingVariable(eventPlayer.buyqty)
+        factPoints[eventPlayer.faction] += eventPlayer.buyqty
+        eventPlayer.buyqty = 0
+
 rule "get sombra quest":
     @Event eachPlayer
     @Condition eventPlayer.isHoldingButton(Button.INTERACT)
     @Condition distance(eventPlayer, QuestPos) <= 2
+    stopChasingVariable(eventPlayer.questProgress) # stop chasing blood crystal time (failsafe)
     # reject quest
-    if eventPlayer.questData != []:
+    if eventPlayer.questType != -1:
         if eventPlayer.faction == FACTIONS.SOMBRUH:
             smallMessage(eventPlayer, "{} pathetic. fine, i'll give you something more your size.".format(heroIcon(Hero.SOMBRA)))
             damage(eventPlayer, null, 20)
         else:
             smallMessage(eventPlayer, "{} ugh, fine. how about this one, then?".format(heroIcon(Hero.SOMBRA)))
         playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.WHITE, eventPlayer, 50)
+        eventPlayer.questType = -1
     else:
         playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.WHITE, eventPlayer, 50)
 
+    eventPlayer.questType = random.randint(0, QUEST_TYPE.DAMAGE)
+    switch eventPlayer.questType:
+        case QUEST_TYPE.HITMAN:
+            smallMessage(eventPlayer, "{} i want that bitch dead. go.".format(heroIcon(Hero.SOMBRA)))
+            break
+        case QUEST_TYPE.VISIT:
+            smallMessage(eventPlayer, "{} i need you to get some intel for me.".format(heroIcon(Hero.SOMBRA)))
+            break
+        case QUEST_TYPE.BLOOD:
+            smallMessage(eventPlayer, "{} don't ask me what my my business is with that thing.".format(heroIcon(Hero.SOMBRA)))
+            eventPlayer.questGoal = random.randint(eventPlayer.level * 50, 90)
+            break
+        case QUEST_TYPE.DAMAGE:
+
+            break
+
+    wait(2, Wait.IGNORE_CONDITION)
 
 
-rule "enter base":
+
+rule "enter base & update faction level":
     @Event eachPlayer
     @Condition distance(eventPlayer, factSpawns[eventPlayer.faction]) <= 3
+    smallMessage(eventPlayer, "entered your faction's base. you're invulnerable here but can't do damage.")
+    # heal, phase, pacify
+    heal(eventPlayer, null, eventPlayer.getMaxHealth())
+    eventPlayer.setStatusEffect(null, Status.PHASED_OUT, 9999)
+    eventPlayer.setDamageDealt(0)
+    # update faction level (points to next level = 50x^2 + 500x + 5000)
+    if factPoints[eventPlayer.faction] > factLvUp[eventPlayer.faction]:
+        factPoints[eventPlayer.faction] %= factLvUp[eventPlayer.faction]
+        factLevels[eventPlayer.faction] += 1
+        factLvUp[eventPlayer.faction] = 50 * factLevels[eventPlayer.faction]**2 + 500*factLevels[eventPlayer.faction] + 5000
+
+rule "leave base":
+    @Event eachPlayer
+    @Condition eventPlayer.hasStatusEffect(Status.PHASED_OUT)
+    @Condition distance(eventPlayer, factSpawns[eventPlayer.faction]) >= 3
+    smallMessage(eventPlayer, "you left your base. be careful, it's a wild world out there.")
+    eventPlayer.clearStatusEffect(Status.PHASED_OUT)
+    eventPlayer.setDamageDealt(eventPlayer.stats[STATS.DAMAGE])
 
 rule "swap heroes":
     @Event eachPlayer
@@ -426,9 +490,15 @@ rule "kill handling":
     # money
     eventPlayer.money += victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH else 1)
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
-    # enemy
-    if not victim.faction in eventPlayer.enemies:
-        eventPlayer.enemies.append(victim.faction)
+    ### enemy ###
+    # killed enemy
+    if eventPlayer.faction in victim.enemies:
+        eventPlayer.enemies.remove(victim.faction)
+    # killed innocent
+    else:
+        if not victim.faction in eventPlayer.enemies:
+            eventPlayer.enemies.append(victim.faction)
+
 ### faction specific behaviors ###
 rule "cult lifesteal & blood":
     @Event playerDealtDamage
@@ -452,16 +522,19 @@ rule "gaia healing credit":
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition healee != eventPlayer
     factPoints[FACTIONS.GAIA] += eventHealing * eventPlayer.stats[STATS.OBJECTIVE]
+    eventPlayer.money += 50 * 1 + 0.2 * factLevels[eventPlayer.faction]
 
-rule "clear enemy on death":
+rule "gaia revenge":
     @Event playerDealtDamage
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition eventPlayer.faction in victim.enemies
+    victim.setStatusEffect(eventPlayer, Status.BURNING, 0.25)
     damage(victim, eventPlayer, eventDamage * 0.5)
 ### misc ###
 rule "player leave cleanup":
     @Event playerLeft
     shoppers.remove(eventPlayer)
+    # would add quest refresh for people with them as their mark but sounds expensive
 
 rule "skip hero select phase, alter default gamemode conditions":
     @Event global
@@ -474,9 +547,9 @@ rule "skip hero select phase, alter default gamemode conditions":
     disableAnnouncer()
 
 /*2do
-- icon list instead of page no in shop
+- icon list with stats in shop (arrow?)
 - fix base names
-- fix hero swap & do base healing, pacify & invuln
+- fix hero swap
 - random shop bg
 - quests
 - faction goals
