@@ -28,6 +28,10 @@ settings {
 #!define ShopLookPos vect(69.5, 8.5, -28.5)
 #!define BloodRadius 4.7
 #!define QuestPos vect(165.7, 12, 36.2)
+#!define GoldPos vect(123.2, 7, -17.2)
+#!define GoldRadius 5.5
+#!define CryptoPos vect(184.1, 13.8, 40.8)
+#!define CryptoRadius 2.9
 #!define BaseFactionMembers 4
 
 enum FACTIONS:
@@ -196,7 +200,7 @@ rule "global init":
     wait()
 
     ### gold mine ###
-    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, )
+    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos - 3*Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "beg from lumerico president ($60/s/player)", )
 
     ### time HUD + shop prompt ###
