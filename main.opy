@@ -56,6 +56,7 @@ enum QUEST_TYPE:
     BLOOD,
     DAMAGE
 
+globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
 globalvar factNames = ["the children of gaia", "the cult of the blood god", "the bourgeoisie", "crypto bros"]
 globalvar factSpawns = [vect(98.38, 14, 14.15), vect(74.68, 14, 21), vect(144.65, 11, -8.53), vect(184.13, 19, 73.26)]
 globalvar factGoalStrings = [
@@ -66,7 +67,7 @@ globalvar factGoalStrings = [
 ]
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou regen 15 HP/s and start with 25% less damage taken & dealt.\nyou deal 50% more damage to players who kill people in your faction.\nfaction earnings bonus is doubled for money from healing",
-    "heal for 10% of your dealt damage.\nfeeding the blood god increases lifesteal to 40%, gives you 50% more money and 50% faster ult gain.\n40% of damage dealt contributes to your faction goal.",
+    "heal for 10% of your dealt damage.\nfeeding the blood god increases lifesteal to 40% and gives 50% more money.\n40% of damage dealt contributes to your faction goal.",
     "increase your held money by 10% when getting eliminations\nand double money earned from kills,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "double your earnings from quests.\ngain 5% of your max health as temporary armor upon completing them."
 ]
@@ -340,7 +341,7 @@ rule "shop select":
     @Condition eventPlayer.isHoldingButton(Button.JUMP) or eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)
     @Condition eventPlayer in shoppers
     do:
-        # message if can't buy 1
+		# message if can't buy 1
         if eventPlayer.money < shopPrices[eventPlayer.option]:
             playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
             smallMessage(eventPlayer, "you don't have enough money.")
@@ -420,6 +421,7 @@ rule "enter blood god":
     # give money
     chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (factLevels[eventPlayer.faction]/10 + (0.39 if eventPlayer.faction == FACTIONS.BLOOD else 0.3)), ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.faction == FACTIONS.BLOOD:
+		eventPlayer.
         eventPlayer.buyqty = 0
         chase(eventPlayer.buyqty, 99999999999, rate=eventPlayer.stats[STATS.OBJECTIVE]*eventPlayer.getMaxHealth()*0.1, ChaseReeval.DESTINATION_AND_RATE)
 
@@ -511,8 +513,11 @@ rule "swap heroes":
 
 rule "kill handling":
     @Event playerDealtFinalBlow
+	# rich money bonus
+	if eventPlayer.faction == FACTION.RICH:
+		eventPlayer.money *= 1.1
     # money
-    eventPlayer.money += victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH else 1)
+    eventPlayer.money += victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
     ### enemy ###
     # killed enemy
@@ -576,12 +581,11 @@ rule "skip hero select phase, alter default gamemode conditions":
 - icon list with stats in shop (arrow?)
 - fix base names
 - fix hero swap
-- random shop bg
+- random shop bg? (need to store)
 - quests
 - faction goals
 - catchup'
 - compensate for low faction membership in objectives
-- gold mine near gaia spawn
 - mine with more output/users ($ > blood only at low level) at payload end point?
 
 faction select
