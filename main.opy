@@ -47,6 +47,10 @@ settings {
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE]
 
+rule "debug ded marker":
+    @Event playerDied
+    smallMessage(eventPlayer, "ded")
+
 ### inits ###
 def questComplete():
     stopChasingVariable(eventPlayer.questProgress)
@@ -121,7 +125,7 @@ rule "global init":
     wait()
 
     ### gold mine ###
-    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES_SOUND, Color.YELLOW, GoldPos, 5*GoldRadius, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "beg from lumérico president ($60/s split among beggars)", GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
@@ -372,8 +376,10 @@ rule "enter blood god":
 rule "leave blood god":
     @Event eachPlayer
     # @Condition eventPlayer.hasSpawned()
-    @Condition eventPlayer.bloodFx != null
-    @Condition eventPlayer.isDead() or distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) > BloodRadius
+    @Condition eventPlayer.bloodDoT != null
+    @Condition (distance(eventPlayer, vect(131.1, 11, 26.1)) > BloodRadius) or (eventPlayer.isDead())
+    wait()
+    bigMessage(eventPlayer, "left blood god")
     stopDoT(eventPlayer.bloodDoT)
     stopChasingVariable(eventPlayer.money)
     stopChasingVariable(eventPlayer.buyqty)
@@ -642,7 +648,9 @@ rule "debug bot spawn":
     createDummy(Hero.BASTION, Team.ALL, -1, hostPlayer, Vector.FORWARD)
 
 /*2do
+- fix dying in blood god
 - intro
+- beg ring visible behind chair
 - random shop bg? (need to store)
 - earning $/s hud
 - trans color easter egg
