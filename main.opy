@@ -121,7 +121,9 @@ rule "global init":
     wait()
 
     ### gold mine ###
-    createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.YELLOW, GoldPos - 11*Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.SPARKLES_SOUND, Color.YELLOW, GoldPos, 5*GoldRadius, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "beg from lumérico president ($60/s split among beggars)", GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### crypto ###
@@ -139,8 +141,8 @@ rule "global init":
         "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE if factPoints[localPlayer.faction] < factLvUp[localPlayer.faction] else Color.ROSE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
     wait()
     # hudText(localPlayer, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else "{} {}".format(questText[localPlayer.questType], localPlayer.questGoal), b"progress:", localPlayer.questProgress, HudPosition.TOP, 0, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
-    progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else questText[localPlayer.questType], HudPosition.TOP, 0, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
-    hudSubheader(localPlayer, b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal))
+    progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else questText[localPlayer.questType], HudPosition.TOP, 1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
+    hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     ### bases ###
     for i_init in range(len(factSpawns)):
@@ -209,11 +211,12 @@ rule "global init":
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### server load ###
-    hudText(getAllPlayers(), abilityIconString(Hero.TORBJORN, Button.ABILITY_2),  "peak: {} | average: {}".format(getPeakServerLoad(), getAverageServerLoad()), "server load: {}".format(getServerLoad()), HudPosition.RIGHT, -1, Color.ORANGE, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
+    hudText(getAllPlayers(), null,  "peak: {} | average: {}".format(getPeakServerLoad(), getAverageServerLoad()), "server load: {}".format(getServerLoad()), HudPosition.RIGHT, -1, Color.ORANGE, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
 
 rule "player init":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
+    @Condition eventPlayer.faction == -1
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
         hudSubheader(eventPlayer, eventPlayer.getPosition(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
@@ -224,6 +227,7 @@ rule "player init":
         "lv {} | ${}\n{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction]),
         eventPlayer.getEyePosition() + Vector.UP,
         1, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,150), SpecVisibility.ALWAYS)
+    eventPlayer.hudId = getLastCreatedEntity()
     if not eventPlayer.isDummy():
         shut()
         wait(3)
@@ -349,8 +353,7 @@ rule "enter blood god":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.bloodDoT == null
-    @Condition eventPlayer.getPosition().y <= 19
-    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(131.1, 0, 26.1)) < BloodRadius
+    @Condition distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) < BloodRadius
     eventPlayer.startDoT(null, 9999,  eventPlayer.getMaxHealth() * 0.1)
     eventPlayer.bloodDoT = getLastDoT()
     createBeam(getAllPlayers(), Beam.BAD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
@@ -370,7 +373,7 @@ rule "leave blood god":
     @Event eachPlayer
     # @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.bloodFx != null
-    @Condition (eventPlayer.getPosition().y >= 19) or eventPlayer.isDead() or (distance(eventPlayer.getPosition() * vect(1,0,1), vect(131.1, 0, 26.1)) > BloodRadius)
+    @Condition eventPlayer.isDead() or distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) > BloodRadius
     stopDoT(eventPlayer.bloodDoT)
     stopChasingVariable(eventPlayer.money)
     stopChasingVariable(eventPlayer.buyqty)
@@ -398,7 +401,7 @@ rule "enter crypto mine":
 
 rule "leave crypto mine":
     @Event eachPlayer
-    @Condition distance(eventPlayer, CryptoPos) > CryptoRadius
+    @Condition eventPlayer.isDead() or distance(eventPlayer, CryptoPos) > CryptoRadius
     minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     destroyEffect(eventPlayer.mineFx)
     eventPlayer.mineFx = null
@@ -409,11 +412,10 @@ rule "beg":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.isAlive()
-    @Condition distance(GoldPos * vect(1,0,1), eventPlayer.getPosition() * vect(1,0,1)) <= GoldRadius
-    @Condition eventPlayer.getPosition().y <= 15
+    @Condition distance(GoldPos, eventPlayer.getPosition()) <= GoldRadius
     do:
         eventPlayer.money += MoneyMult * 60 / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
-        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 20)
+        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 50)
         wait(1)
     while RULE_CONDITION
 # quests
@@ -438,8 +440,7 @@ rule "get sombra quest":
     eventPlayer.questType = random.randint(0, QUEST_TYPE.DAMAGE)
     switch eventPlayer.questType:
         case QUEST_TYPE.HITMAN:
-            if getNumberOfPlayers() > 1:
-                smallMessage(eventPlayer, "{} i want that bitch dead. go.".format(heroIcon(Hero.SOMBRA)))
+            if getNumberOfPlayers(Team.ALL) > 1:
                 eventPlayer.questGoal = random.choice([x for x in getAllPlayers() if x != eventPlayer])
             else:
                 smallMessage(eventPlayer, "{} i was gonna tell you to kill someone for fun but uh... nobody else is here. shame.".format(heroIcon(Hero.SOMBRA)))
@@ -447,20 +448,19 @@ rule "get sombra quest":
                 return
             break
         case QUEST_TYPE.VISIT:
-            smallMessage(eventPlayer, "{} i need you to get some intel for me.".format(heroIcon(Hero.SOMBRA)))
             eventPlayer.questProgress = random.randint(0, FACTIONS.SOMBRUH)
             eventPlayer.questGoal = factNames[eventPlayer.questProgress]
             break
         case QUEST_TYPE.BLOOD:
-            smallMessage(eventPlayer, "{} don't ask me what my my business is with that thing.".format(heroIcon(Hero.SOMBRA)))
             eventPlayer.questGoal = min(random.randint(30, 70), eventPlayer.level * 10)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.DAMAGE:
-            smallMessage(eventPlayer, "{} i'm bored, go shoot some people so i can watch the catfight.".format(heroIcon(Hero.SOMBRA)))
             eventPlayer.questGoal = random.randint(500, 700) + eventPlayer.level
             eventPlayer.questProgress = 0
             break
+
+    smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.SOMBRA), random.choice(sombraQuips[eventPlayer.questType])))
 
     wait(2, Wait.IGNORE_CONDITION)
 
@@ -481,6 +481,7 @@ rule "visit quest done":
 rule "damage quest":
     @Event playerDealtDamage
     @Condition eventPlayer.questType == QUEST_TYPE.DAMAGE
+    @Condition victim != eventPlayer
     eventPlayer.questProgress += eventDamage
 
 rule "kill quest":
@@ -641,14 +642,10 @@ rule "debug bot spawn":
     createDummy(Hero.BASTION, Team.ALL, -1, hostPlayer, Vector.FORWARD)
 
 /*2do
-- crypto mine + gaia damage
-- gold mine
+- intro
 - random shop bg? (need to store)
-- sombra quest quips
 - earning $/s hud
-- player overhead hud (level, is enemy)
 - trans color easter egg
-- quests
 - faction goals
 - catchup'
 - compensate for low faction membership in objectives

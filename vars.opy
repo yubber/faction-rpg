@@ -101,13 +101,39 @@ globalvar baseStats = [
 ]
 globalvar stealPortion
 globalvar questText = [
-    "get a killing blow on",
-    "enter the base of",
-    "stay in the blood god for",
-    "damage other players for a total of"
+    "get a killing blow on:",
+    "enter this faction's base:",
+    "stay in the blood god",
+    "damage other players"
 ]
 globalvar antiCrashActivated
 globalvar minerCount
+globalvar sombraQuips = [
+    [ # kill
+        "i want that bitch dead. go.",
+        "go fuck that guy's mom",
+        "wouldn't be an rpg gamemode without murder.",
+        "i don't actually know that person, i just want to see you both struggle."
+    ],
+    [ # visit
+        "i need you to get some intel for me.",
+        "we do a little peeping",
+        "go over to that faction's base i'm sure they won't shoot you or anything.",
+        "my crush is in that faction and i need uh..."
+    ],
+    [ # blood
+        "don't ask me what my business is with that thing.",
+        "ngl the blood god is kinda thicc tho",
+        "no need to be scared, it's just an eldritch god.",
+        "i've seen the blood god's browser history. i wish i didn't."
+    ],
+    [ # damage
+        "i'm bored, go shoot some people so i can watch the catfight.",
+        "you better not ask to farm damage like a coward",
+        "i love me some violence.",
+        "peace is overrated. those gaia hippies don't know what they're talking about."
+    ]
+]
 
 playervar level = 1
 playervar money
