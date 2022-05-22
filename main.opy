@@ -584,7 +584,7 @@ rule "min ult":
     do:
         eventPlayer.setUltCharge(eventPlayer.stats[STATS.ULT])
     while RULE_CONDITION
-    
+
 rule "kill handling":
     @Event playerDealtFinalBlow
 	# rich money bonus
@@ -741,6 +741,7 @@ rule "debug bot spawn":
 /*2do
 - intro
 - events
+- passive mine
 - bank & robbing
 - flight upgrade
 - rapid fire upgrade
