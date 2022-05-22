@@ -47,20 +47,17 @@ settings {
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE]
 
-rule "debug ded marker":
-    @Event playerDied
-    smallMessage(eventPlayer, "ded")
-
 ### inits ###
 def questComplete():
     stopChasingVariable(eventPlayer.questProgress)
 	if eventPlayer.faction == FACTIONS.SOMBRUH:
 		smallMessage(eventPlayer, "{} good. the plan is going well.".format(heroIcon(Hero.SOMBRA)))
-		eventPlayer.addHealthPool(Health.ARMOR, 0.05*eventPlayer.getMaxHealth(), false, false)
+		eventPlayer.setUltCharge(eventPlayer.getUltCharge() + 40)
+        factPoints[eventPlayer.faction] += max(1700, eventPlayer.level/2)
 	else:
 		smallMessage(eventPlayer, "{} well done.".format(heroIcon(Hero.SOMBRA)))
 
-    eventPlayer.money += max(eventPlayer.level * 0.4, 550) * MoneyMult * max(1, sqrt(eventPlayer.level)) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1)
+    eventPlayer.money += max(eventPlayer.level * 0.3, 550) * MoneyMult * max(1, 0.5*sqrt(eventPlayer.level)) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1)
 
 	eventPlayer.questType = -1
 	eventPlayer.questProgress = -1
@@ -114,7 +111,7 @@ rule "global init":
     createEffect(getAllPlayers(), Effect.ORB, Color.RED,
         vect(131.1, 14.5, 26.1) + vect(0, 0.5*sin(2*getTotalTimeElapsed() % 6.283), 0), 1, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createEffect(getAllPlayers(), Effect.RING, Color.RED, vect(131.1, 11, 26.1), BloodRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "blood god - sacrifice 10% max hp /s\nfor money (1 hp : $2)", vect(131.1, 15.3, 26.1), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "blood god - sacrifice 10% max hp /s\nfor money (1 hp : $1)", vect(131.1, 15.3, 26.1), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
     createEffect(getAllPlayers(), Effect.ENERGY_SOUND ,Color.WHITE, vect(131.1, 12, 26.1), 25, EffectReeval.VISIBILITY)
 
     ### sombra quest ###
@@ -126,13 +123,13 @@ rule "global init":
 
     ### gold mine ###
     createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
-    createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES_SOUND, Color.YELLOW, GoldPos, 5*GoldRadius, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "beg from lumérico president ($60/s split among beggars)", GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$45/s for each player + 30% per miner", CryptoPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$40/s + $50/s per additional miner (now +${}/s)".format((minerCount-1)*50), CryptoPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### time HUD + shop prompt ###
     hudSubtext(getAllPlayers(), "{}:{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
@@ -148,15 +145,26 @@ rule "global init":
     progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else questText[localPlayer.questType], HudPosition.TOP, 1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
     hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
-    ### bases ###
+    ### factions ###
     for i_init in range(len(factSpawns)):
+        # faction spawns
         createEffect(localPlayer, Effect.SPHERE,
             Color.BLUE if localPlayer.faction == evalOnce(i_init) else Color.TEAM_2,
             evalOnce(factSpawns[i_init]), 3, EffectReeval.VISIBILITY_AND_COLOR)
-        createInWorldText(localPlayer,
+        createInWorldText(localPlayer if localPlayer.faction != -1 else [],
             "your faction's base\nhold crouch to swap heroes".format(buttonString(Button.INTERACT))
 				if localPlayer.faction == evalOnce(i_init) else evalOnce("base of {}".format(evalOnce(factNames[i_init]))),
-            evalOnce(factSpawns[i_init] + Vector.UP), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
+            evalOnce(factSpawns[i_init]), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
+        # faction intros
+        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce("◀ {} ▶".format(factNames[i_init])), factCams[i_init] + 100 * (
+            (1.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
+            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 5, Clip.NONE, WorldTextReeval.VISIBILITY, Color.AQUA, SpecVisibility.DEFAULT)
+        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce("faction goal: {}".format(factGoalStrings[i_init])), factCams[i_init] + 100 * (
+            (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
+            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 5, Clip.NONE, WorldTextReeval.VISIBILITY, Color.SKY_BLUE, SpecVisibility.DEFAULT)
+        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce(factDescs[i_init]), factCams[i_init] + 100 * (
+            (-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
+            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 2, Clip.NONE, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
         wait()
 
     ### shop IWT ###
@@ -169,7 +177,7 @@ rule "global init":
             128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),
             128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240)
         ), SpecVisibility.DEFAULT)
-    createInWorldText(shoppers, "buy some magic fish! (by making a purchase you agree to not hold us liable for any injury or damage caused by use of our products.)\n ".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
+    createInWorldText(shoppers, "buy some magic fish! (by making a purchase you agree to not hold us liable for any injury or damage caused by use of our products.)\n ", ShopCamPos + 100 * (
         (1.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.GRAY, SpecVisibility.DEFAULT)
     createInWorldText(shoppers, "horizontal movement to scroll\n ".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
@@ -191,7 +199,7 @@ rule "global init":
         (0.45 - 0.200 + 0.05*sin(2*getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.BLUE, SpecVisibility.DEFAULT)
     # shop item
-    createInWorldText(shoppers, "◀ {} {} ({}) - ${} ▶".format(shopIcons[localPlayer.option],
+    createInWorldText(shoppers, "◀ {} {} ({}%) - ${} ▶".format(shopIcons[localPlayer.option],
         shopItems[localPlayer.option],
         abs(localPlayer.stats[localPlayer.option]),
         shopPrices[localPlayer.option]), ShopCamPos + 100 * (
@@ -217,6 +225,12 @@ rule "global init":
     ### server load ###
     hudText(getAllPlayers(), null,  "peak: {} | average: {}".format(getPeakServerLoad(), getAverageServerLoad()), "server load: {}".format(getServerLoad()), HudPosition.RIGHT, -1, Color.ORANGE, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.ALWAYS)
 
+    ### barrier text ###
+    createInWorldText(getAllPlayers(), "you can pass through here", vect(138.9, 14, 28.2), 1.5, Clip.SURFACES,
+        WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(138.9, 14, 28.2))) * 25), SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "you can pass\nthrough here", vect(140.9, 14, 47.5), 1.5, Clip.SURFACES,
+        WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(140.9, 14, 47.5))) * 25), SpecVisibility.DEFAULT)
+
 rule "player init":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
@@ -224,18 +238,28 @@ rule "player init":
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
         hudSubheader(eventPlayer, eventPlayer.getPosition(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
-        eventPlayer.faction = 1
-        eventPlayer.disableEnvironmentCollision(false)
     eventPlayer.disableGamemodeHud()
     createInWorldText([] if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else getAllPlayers().exclude(eventPlayer),
-        "lv {} | ${}\n{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction]),
+        "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
+        "\n{} faction enemy".format(iconString(Icon.SKULL)) if localPlayer.faction in eventPlayer.enemies else ""),
         eventPlayer.getEyePosition() + Vector.UP,
-        1, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,150), SpecVisibility.ALWAYS)
+        1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,150), SpecVisibility.ALWAYS)
     eventPlayer.hudId = getLastCreatedEntity()
     if not eventPlayer.isDummy():
         shut()
-        wait(3)
+        eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
+        waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
         resume()
+        wait()
+        eventPlayer.stopCamera()
+        eventPlayer.faction = eventPlayer.option
+    if eventPlayer.faction == FACTIONS.GAIA:
+        eventPlayer.stats[STATS.DAMAGE] = 75
+        eventPlayer.stats[STATS.DEFENSE] = -75
+        eventPlayer.setDamageDealt(75)
+        eventPlayer.setDamageReceived(75)
+        eventPlayer.startHoT(null, 9999, 15)
+
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
 ### shop ###
@@ -254,25 +278,34 @@ rule "shop enter":
     smallMessage(eventPlayer, b"1... ")
     wait(1, Wait.ABORT_WHEN_FALSE)
 	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.PURPLE, eventPlayer, 1.5)
-    eventPlayer.startCamera(ShopCamPos, ShopLookPos, 50)
+    eventPlayer.startCamera(ShopCamPos, ShopLookPos, 20)
     shut()
+    wait() # reset ammo
+    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*100/eventPlayer.stats[STATS.AMMO])
+    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*100/eventPlayer.stats[STATS.AMMO])
     playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 50)
     shoppers.append(eventPlayer)
 
-rule "shop scroll":
+rule "shop/faction preview scroll":
     @Event eachPlayer
-    @Condition eventPlayer in shoppers
+    @Condition eventPlayer in shoppers or eventPlayer.faction == -1
     @Condition eventPlayer.getThrottle().x != 0
     do:
         # smallMessage(eventPlayer, eventPlayer.option)
         if eventPlayer.getThrottle().x > 0:
             if eventPlayer.option == 0:
-                eventPlayer.option = ShopLen - 1
+                if eventPlayer.faction == -1:
+                    eventPlayer.option = len(factNames) - 1
+                else:
+                    eventPlayer.option = ShopLen - 1
             else:
                 eventPlayer.option--
         else:
             eventPlayer.option++
-            eventPlayer.option %= ShopLen
+            if eventPlayer.faction == -1:
+                eventPlayer.option %= len(factNames)
+            else:
+                eventPlayer.option %= ShopLen
         wait(0.2, Wait.ABORT_WHEN_FALSE)
     while RULE_CONDITION
 
@@ -304,7 +337,8 @@ rule "shop buy":
         eventPlayer.money -= eventPlayer.buyqty * shopPrices[eventPlayer.option]
         eventPlayer.stats[eventPlayer.option] += eventPlayer.buyqty
         eventPlayer.level += eventPlayer.buyqty
-        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 40)
+        playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 70)
+        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.ROSE, ShopLookPos, 5)
 
         wait(0.064)
         if not eventPlayer.isHoldingButton(Button.CROUCH):
@@ -315,9 +349,7 @@ rule "shop refund":
     @Event eachPlayer
     @Condition eventPlayer in shoppers
     @Condition eventPlayer.isHoldingButton(Button.ULTIMATE)
-    wait(0.4, Wait.ABORT_WHEN_FALSE)
-    smallMessage(eventPlayer, "hold {} to refund this upgrade...".format(buttonString(Button.ULTIMATE)))
-    wait(1.6, Wait.ABORT_WHEN_FALSE)
+    wait(1.2, Wait.ABORT_WHEN_FALSE)
 
     if eventPlayer.faction == FACTIONS.GAIA and eventPlayer.option in [STATS.DEFENSE, STATS.DAMAGE]:
         eventPlayer.money += shopPrices[eventPlayer.option] * eventPlayer.stats[eventPlayer.option] - 75
@@ -344,7 +376,11 @@ rule "shop leave":
     eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING])
     eventPlayer.setProjectileGravity(-0.25 * eventPlayer.stats[STATS.PROJECTILE] + 125)
     eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
+    eventPlayer.setKnockbackDealt(eventPlayer.stats[STATS.KNOCK])
+    wait()
     eventPlayer.startScalingSize(1 - (eventPlayer.stats[STATS.SHRINK] / 100), false)
+    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
+    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
     wait(0.032)
     eventPlayer.setScore(eventPlayer.level / 100)
     shoppers.remove(eventPlayer)
@@ -355,18 +391,19 @@ rule "shop leave":
 # blood god
 rule "enter blood god":
     @Event eachPlayer
-    @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.bloodDoT == null
+    @Condition eventPlayer.hasSpawned()
+    @Condition eventPlayer.isAlive()
     @Condition distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) < BloodRadius
-    eventPlayer.startDoT(null, 9999,  eventPlayer.getMaxHealth() * 0.1)
+    eventPlayer.startDoT(null, 9999,  (eventPlayer.getMaxHealth() * 0.1) * 100 / -eventPlayer.stats[STATS.DEFENSE])
     eventPlayer.bloodDoT = getLastDoT()
     createBeam(getAllPlayers(), Beam.BAD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
         vect(131.1, 14.5, 26.1) + Vector.UP* 0.5*sin(2*getTotalTimeElapsed() % 6.283), Color.RED, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     eventPlayer.bloodFx = getLastCreatedEntity()
 
     # give money
-    smallMessage(eventPlayer, b"${} /s".format(eventPlayer.getMaxHealth() * 0.1 * (MoneyMult + (0.2 * 1.3 if eventPlayer.faction == FACTIONS.BLOOD else 0.2))))
-    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * 0.1 * (MoneyMult + (0.2 * 1.3 if eventPlayer.faction == FACTIONS.BLOOD else 0.2)), ChaseReeval.DESTINATION_AND_RATE)
+    smallMessage(eventPlayer, b" ${}/s ".format(eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * MoneyMult))
+    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * MoneyMult, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.BLOOD:
         chase(eventPlayer.questProgress, 99999999999, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.faction == FACTIONS.BLOOD:
@@ -379,7 +416,6 @@ rule "leave blood god":
     @Condition eventPlayer.bloodDoT != null
     @Condition (distance(eventPlayer, vect(131.1, 11, 26.1)) > BloodRadius) or (eventPlayer.isDead())
     wait()
-    bigMessage(eventPlayer, "left blood god")
     stopDoT(eventPlayer.bloodDoT)
     stopChasingVariable(eventPlayer.money)
     stopChasingVariable(eventPlayer.buyqty)
@@ -398,15 +434,18 @@ rule "leave blood god":
 # crypto
 rule "enter crypto mine":
     @Event eachPlayer
+    @Condition eventPlayer.mineFx == null
+    @Condition eventPlayer.isAlive()
     @Condition distance(eventPlayer, CryptoPos) <= CryptoRadius
     minerCount += 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
         vect(184.16, 27.5, 40.71), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     eventPlayer.mineFx = getLastCreatedEntity()
-    chase(eventPlayer.money, 999999999, rate=(MoneyMult + 0.3 * minerCount)* 45, ChaseReeval.DESTINATION_AND_RATE)
+    chase(eventPlayer.money, 999999999, rate=MoneyMult * (40 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
 
 rule "leave crypto mine":
     @Event eachPlayer
+    @Condition eventPlayer.mineFx != null
     @Condition eventPlayer.isDead() or distance(eventPlayer, CryptoPos) > CryptoRadius
     minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     destroyEffect(eventPlayer.mineFx)
@@ -421,7 +460,8 @@ rule "beg":
     @Condition distance(GoldPos, eventPlayer.getPosition()) <= GoldRadius
     do:
         eventPlayer.money += MoneyMult * 60 / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
-        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 50)
+        playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.YELLOW, eventPlayer.getPosition() + Vector.UP, 0.6)
+        playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 10)
         wait(1)
     while RULE_CONDITION
 # quests
@@ -429,6 +469,7 @@ rule "get sombra quest":
     @Event eachPlayer
     @Condition eventPlayer.isHoldingButton(Button.INTERACT)
     @Condition distance(eventPlayer, QuestPos) <= 2
+
     stopChasingVariable(eventPlayer.questProgress) # stop chasing blood crystal time (failsafe)
     # reject quest
     if eventPlayer.questType != -1:
@@ -441,8 +482,9 @@ rule "get sombra quest":
         eventPlayer.questType = -1
         wait(0.2)
     else:
-        playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.WHITE, eventPlayer, 50)
+        smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.SOMBRA), random.choice(sombraQuips[eventPlayer.questType])))
 
+    playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.WHITE, eventPlayer, 50)
     eventPlayer.questType = random.randint(0, QUEST_TYPE.DAMAGE)
     switch eventPlayer.questType:
         case QUEST_TYPE.HITMAN:
@@ -465,8 +507,6 @@ rule "get sombra quest":
             eventPlayer.questGoal = random.randint(500, 700) + eventPlayer.level
             eventPlayer.questProgress = 0
             break
-
-    smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.SOMBRA), random.choice(sombraQuips[eventPlayer.questType])))
 
     wait(2, Wait.IGNORE_CONDITION)
 
@@ -503,13 +543,16 @@ rule "enter base & update faction level":
     # heal, phase, pacify
     heal(eventPlayer, null, eventPlayer.getMaxHealth())
     eventPlayer.setStatusEffect(null, Status.PHASED_OUT, 9999)
+    eventPlayer.setStatusEffect(null, Status.UNKILLABLE, 9999)
     eventPlayer.setDamageDealt(0)
     # update faction level (points to next level = 50x^2 + 500x + 5000)
     while factPoints[eventPlayer.faction] > factLvUp[eventPlayer.faction]:
-        wait()
-        factPoints[eventPlayer.faction] %= factLvUp[eventPlayer.faction]
+        playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.SKY_BLUE, eventPlayer.getPosition(), 1)
+        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.SKY_BLUE, eventPlayer.getPosition(), 30)
+        factPoints[eventPlayer.faction] -= factLvUp[eventPlayer.faction]
         factLevels[eventPlayer.faction] += 1
-        factLvUp[eventPlayer.faction] = 50 * factLevels[eventPlayer.faction]**2 + 500*factLevels[eventPlayer.faction] + 5000
+        factLvUp[eventPlayer.faction] = 45 * factLevels[eventPlayer.faction]**2 + 650*factLevels[eventPlayer.faction] + 6000
+        wait(0.5)
 
 rule "leave base":
     @Event eachPlayer
@@ -519,6 +562,7 @@ rule "leave base":
     @Condition distance(eventPlayer, factSpawns[eventPlayer.faction]) >= 3
     wait(0.3, Wait.ABORT_WHEN_FALSE)
     eventPlayer.clearStatusEffect(Status.PHASED_OUT)
+    eventPlayer.clearStatusEffect(Status.UNKILLABLE)
     eventPlayer.setDamageDealt(eventPlayer.stats[STATS.DAMAGE])
 
 rule "swap heroes":
@@ -534,6 +578,13 @@ rule "swap heroes":
     eventPlayer.resetHeroAvailability()
 
 # misc
+rule "min ult":
+    @Event eachPlayer
+    @Condition eventPlayer.getUltCharge() < eventPlayer.stats[STATS.ULT]
+    do:
+        eventPlayer.setUltCharge(eventPlayer.stats[STATS.ULT])
+    while RULE_CONDITION
+    
 rule "kill handling":
     @Event playerDealtFinalBlow
 	# rich money bonus
@@ -550,20 +601,25 @@ rule "kill handling":
     ### enemy ###
     # killed enemy
     if eventPlayer.faction in victim.enemies:
+        smallMessage(eventPlayer, "killed a faction enemy. + ${}".format(MoneyMult * victim.level))
         eventPlayer.enemies.remove(victim.faction)
+        eventPlayer.money += MoneyMult * victim.level
     # killed innocent
     else:
         if not victim.faction in eventPlayer.enemies:
             eventPlayer.enemies.append(victim.faction)
 
-rule "dva b!tch mech on spawn":
+rule "respawn":
     @Event eachPlayer
+    @Condition not eventPlayer.isDummy()
     @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.isAlive()
-    @Condition eventPlayer.getCurrentHero() == Hero.DVA
+    @Condition eventPlayer.faction != -1
     # @Condition eventPlayer.isInAlternateForm()
     # @Condition eventPlayer.isOnGround() # cheesy detect spawned vs demeched
-    if eventPlayer.isInAlternateForm():
+    eventPlayer.teleport(factSpawns[eventPlayer.faction])
+
+    if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
         eventPlayer.setUltCharge(100)
 
 ### faction specific behaviors ###
@@ -576,10 +632,10 @@ rule "cult lifesteal & blood":
 rule "gaia healing":
     @Event eachPlayer
     @Condition eventPlayer.faction == FACTIONS.GAIA
-    @Condition eventPlayer.isCrouching()
-    @Condition distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL))
-    smallMessage([x for x in getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES) if x != eventPlayer], "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
-    while eventPlayer.isCrouching() and distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL)):
+    @Condition eventPlayer.isHoldingButton(Button.CROUCH)
+    # @Condition distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL)) <= 3
+    smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
+    while eventPlayer.isCrouching():
         heal([x for x in getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES) if x != eventPlayer], eventPlayer, 6)
         playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.LIME_GREEN, eventPlayer, 3)
         wait(0.1)
@@ -589,7 +645,7 @@ rule "gaia healing credit":
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition healee != eventPlayer
     factPoints[eventPlayer.faction] += eventHealing * FactPointsMult
-    eventPlayer.money += 50 * (1 + 0.2 * factLevels[eventPlayer.faction])
+    eventPlayer.money += 10 * (1 + 0.2 * factLevels[eventPlayer.faction])
 
 rule "gaia revenge":
     @Event playerDealtDamage
@@ -597,12 +653,44 @@ rule "gaia revenge":
     @Condition eventPlayer.faction in victim.enemies or victim.mineFx != null
     victim.setStatusEffect(eventPlayer, Status.BURNING, 0.25)
     damage(victim, eventPlayer, eventDamage * 0.75)
+
+rule "crypto melee":
+    @Event playerDealtDamage
+    @Condition eventPlayer.faction == FACTIONS.SOMBRUH
+    @Condition eventAbility == Button.MELEE
+    # @Condition eventPlayer != victim
+    victim.setStatusEffect(eventPlayer, Status.HACKED, 1.5)
 ### misc ###
+rule "heal when stat > 10000":
+    @Event playerReceivedHealing
+    @Condition eventPlayer.stats[STATS.HEALING] > 10000
+    heal(eventPlayer, healer, eventHealing * (10000 - eventPlayer.stats[STATS.HEALING]) / eventPlayer.stats[STATS.HEALING])
+rule "big door to lumerico barrier":
+    @Event eachPlayer
+    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) <= 3.2
+    @Condition eventPlayer.getPosition().y <= 16
+    # bigMessage(eventPlayer, "debug phase")
+    eventPlayer.disableEnvironmentCollision(false)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) > 3.2 or eventPlayer.getPosition().y > 15.5, 9999)
+    eventPlayer.enableEnvironmentCollision()
+
+rule "small door to lumerico barrier":
+    @Event eachPlayer
+    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) <= 1.1
+    @Condition eventPlayer.getPosition().y <= 17
+    eventPlayer.disableEnvironmentCollision(false)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) > 1.1 or eventPlayer.getPosition().y > 16.5, 9999)
+    eventPlayer.enableEnvironmentCollision()
+
 rule "player leave cleanup":
     @Event playerLeft
     shoppers.remove(eventPlayer)
 	destroyEffect(eventPlayer.bloodFx)
 	stopDoT(eventPlayer.bloodDoT)
+    destroyInWorldText(eventPlayer.hudId)
+    if eventPlayer.mineFx != null:
+        destroyEffect(eventPlayer.mineFx)
+        minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     # would add quest refresh for people with them as their mark but sounds expensive
 
 rule "skip hero select phase, alter default gamemode conditions":
@@ -646,21 +734,25 @@ rule "debug bot spawn":
     @Condition "{}".format(hostPlayer) == "OMGIDIED"
     @Condition hostPlayer.isHoldingButton(Button.MELEE) and hostPlayer.isHoldingButton(Button.INTERACT)
     createDummy(Hero.BASTION, Team.ALL, -1, hostPlayer, Vector.FORWARD)
+    wait(0.080)
+    getLastCreatedEntity().clearStatusEffect(Status.PHASED_OUT)
+    getLastCreatedEntity().faction = random.randint(0, FACTIONS.SOMBRUH)
 
 /*2do
-- fix dying in blood god
 - intro
-- beg ring visible behind chair
-- random shop bg? (need to store)
+- events
+- bank & robbing
+- flight upgrade
+- rapid fire upgrade
 - earning $/s hud
 - trans color easter egg
-- faction goals
+- bourgeois goals
 - catchup'
 - compensate for low faction membership in objectives
+- random shop bg? (need to store)
 
 faction select
 - children of gaia (goal: heal)
-    - faction earnings bonus is doubled for money from healing.
 - cult of the blood god (goal: feed blood)
 - the 0.1%
 - the singularity
