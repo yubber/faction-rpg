@@ -177,6 +177,7 @@ globalvar sombraQuips = [
 globalvar moonPos
 globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 18.1, -0.4), vect(132.2, 17.7, 11.1)]
 globalvar moonOwner
+globalvar eventTime
 
 playervar level = 1
 playervar money

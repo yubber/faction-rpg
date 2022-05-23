@@ -137,7 +137,7 @@ rule "global init":
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "bank | ${}\n{}".format(factPoints[FACTIONS.RICH],
-        "stand here to steal" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+        "stand here to steal (15% / 5s)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
     ### time HUD + shop prompt ###
@@ -633,7 +633,39 @@ rule "swap heroes":
     wait()
     eventPlayer.resetHeroAvailability()
 
+# bank
+rule "rob":
+	@Event eachPlayer
+	@Condition eventPlayer.faction != FACTIONS.RICH
+	@Condition distance(eventPlayer, BankPos) < 5.5
+	@Condition factPoints[FACTIONS.RICH] > 0
+	do:
+		bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
+		wait(5)
+			eventPlayer.money += 0.15 * factPoints[FACTIONS.RICH]
+			factPoints[FACTIONS.RICH] *= 0.85
+		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 4)
+	while RULE_CONDITION
 # misc
+rule "flight":
+	@Event eachPlayer
+	@Condition eventPlayer.stats[STATS.FLIGHT]
+	@Condition eventPlayer.isHoldingButton(Button.JUMP)
+	@Condition eventPlayer.isAlive()
+	do:
+		eventPlayer.applyImpulse(Vector.UP, 20, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+		wait(0.176)
+	while RULE_CONDITION
+
+rule "rapid fire":
+	@Event eachPlayer
+	@Condition eventPlayer.isAlive()
+	@Condition eventPlayer.stats[STATS.DAKKA]
+	do:
+		eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
+		wait(0.16)
+	while RULE_CONDITION
+
 rule "min ult":
     @Event eachPlayer
     @Condition eventPlayer.isAlive()
