@@ -177,6 +177,10 @@ rule "global init":
         createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce(factDescs[i_init]), factCams[i_init] + 100 * (
             (-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
             3 * directionTowards(factCams[i_init], factSpawns[i_init])), 2, Clip.NONE, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+        # controls
+        createInWorldText(localPlayer if localPlayer.faction == -1 else [], evalOnce(b"horizontal movement [a/d] to scroll | [{}] to select".format(buttonString(Button.JUMP))), factCams[localPlayer.option] + 100 * (
+            (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
+            3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 3, Clip.NONE, WorldTextReeval.VISIBILITY, Color.BLUE, SpecVisibility.DEFAULT)
         wait()
 
     ### shop IWT ###
@@ -278,6 +282,14 @@ rule "player init":
         eventPlayer.startHoT(null, 9999, 15)
 
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
+
+    # event update
+    switch eventType:
+        case EVENTS.GRAVITY:
+            eventPlayer.setGravity(eventDetail)
+            break
+        case EVENTS.HERO:
+            eventPlayer.startForcingHero(eventDetail)
 
 ### shop ###
 rule "shop enter":
@@ -518,7 +530,7 @@ rule "moon reward":
     while true:
         moonOwner.setUltCharge(2 + moonOwner.getUltCharge())
         heal(moonOwner, null, 10)
-        moonOwner.money += 2000
+        moonOwner.money += min(getTotalTimeElapsed() * 3, 6000)
         wait(0.5)
 
 # quests
@@ -646,7 +658,7 @@ rule "rob":
 			factPoints[FACTIONS.RICH] *= 0.85
 		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 4)
 	while RULE_CONDITION
-# misc
+# shop upgrades
 rule "flight":
 	@Event eachPlayer
 	@Condition eventPlayer.stats[STATS.FLIGHT]
@@ -676,6 +688,41 @@ rule "min ult":
         wait(1)
     while RULE_CONDITION
 
+# events
+rule "gen events":
+    wait(15)
+    eventType = -1
+    while true:
+        if eventType == -1:
+            eventType = random.randint(0, EVENTS.HERO)
+            switch eventType: # events with side effects are updated in player init
+                case EVENTS.BLOOD:
+                    eventDetail = random.randint(3, 7)
+                    bigMessage(getAllPlayers(), "event: blood god grants {}x money!".format(eventDetail))
+                    break
+                case EVENTS.KILL:
+                    eventDetail = random.randint(3, 5) / 2
+                    bigMessage(getAllPlayers(), "event: kills grant {}x money!".format(eventDetail))
+                    break
+                case EVENTS.GRAVITY:
+                    eventDetail = random.randint(20, 60)
+                    bigMessage(getAllPlayers(), "event: gravity is {}%.".format(eventDetail))
+                    getAllPlayers().setGravity(eventDetail) # also used in player init
+                    break
+                case EVENTS.HERO:
+                    eventDetail = random.choice(getAllHeroes())
+                    bigMessage(getAllPlayers(), "event: hero swap {}".format(heroIcon(eventDetail)))
+                    getAllPlayers().startForcingHero(eventDetail)
+                    break
+
+            wait(random.randint(20, 35))
+        else:
+            eventType = -1
+            getAllPlayers().setGravity(100)
+            getAllPlayers().stopForcingCurrentHero()
+            bigMessage(getAllPlayers(), "event ended.")
+            wait(random.randint(240, 360))
+# misc
 rule "kill handling":
     @Event playerDealtFinalBlow
 	# rich money bonus
@@ -693,11 +740,13 @@ rule "kill handling":
     # killed enemy
     if eventPlayer.faction in victim.enemies:
         smallMessage(eventPlayer, "killed a faction enemy. + ${}".format(MoneyMult * victim.level))
+        smallMessage(victim, "you are no longer wanted by {}".format(factNames[eventPlayer.faction]))
         eventPlayer.enemies.remove(victim.faction)
         eventPlayer.money += MoneyMult * victim.level
     # killed innocent
     else:
         if not victim.faction in eventPlayer.enemies:
+            smallMessage(eventPlayer, "you are now wanted by {}.".format(factNames[victim.faction]))
             eventPlayer.enemies.append(victim.faction)
 
 rule "respawn":
@@ -729,7 +778,7 @@ rule "gaia healing":
     smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
     while eventPlayer.isCrouching():
         heal([x for x in getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES) if x != eventPlayer], eventPlayer, 6)
-        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.LIME_GREEN, eventPlayer, 3)
+        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.LIME_GREEN, eventPlayer.getPosition(), 3)
         wait(0.1)
 
 rule "gaia healing credit":
@@ -737,8 +786,8 @@ rule "gaia healing credit":
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition healee != eventPlayer
     @Condition eventHealing > 0
-    factPoints[eventPlayer.faction] += eventHealing * FactPointsMult
-    eventPlayer.money += 10 * (1 + 0.2 * factLevels[eventPlayer.faction])
+    factPoints[eventPlayer.faction] += eventHealing * FactPointsMult * (0.5 if eventPlayer.faction == FACTIONS.GAIA else 1)
+    eventPlayer.money += 10 * (1 + 0.2 * factLevels[eventPlayer.faction]) * (0.5 if eventPlayer.faction == FACTIONS.GAIA else 1)
 
 rule "gaia revenge":
     @Event playerDealtDamage
@@ -815,8 +864,10 @@ rule "miners oopsie":
     @Condition minerCount < 0
     wait()
     playEffect([x for x in getAllPlayers() if x.mineFx != null], DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, CryptoPos, 90)
-    minerCount = len([x for x in getAllPlayers() if x.mineFx != null])
-    smallMessage(getAllPlayers(), "{} crypto mine bugged out. reenter it to get the right amount of money.".format(iconString(Icon.WARNING)))
+    wait()
+    minerCount = len([x for x in getPlayersInRadius(CryptoPos, CryptoRadius, Team.ALL, LosCheck.OFF) if x.mineFx != null])
+    wait()
+    smallMessage(getAllPlayers(), "{} crypto mine bugged out. if you're mining, reenter it to get the right amount of money.".format(iconString(Icon.WARNING)))
 
 rule "anti crash":
     @Condition not antiCrashActivated
@@ -835,10 +886,12 @@ rule "disable anti crash":
 rule "debug bot spawn":
     @Condition "{}".format(hostPlayer) == "OMGIDIED"
     @Condition hostPlayer.isHoldingButton(Button.MELEE) and hostPlayer.isHoldingButton(Button.INTERACT)
-    createDummy(random.choice(getAllHeroes()), Team.ALL, -1, hostPlayer, Vector.FORWARD)
+    createDummy(random.choice(getAllHeroes()), Team.ALL, -1, hostPlayer, Vector.UP)
     wait(0.080)
     getLastCreatedEntity().clearStatusEffect(Status.PHASED_OUT)
     getLastCreatedEntity().faction = random.randint(0, FACTIONS.SOMBRUH)
+    getLastCreatedEntity().startForcingButton(Button.CROUCH)
+    getLastCreatedEntity().startForcingButton(Button.PRIMARY_FIRE)
 
 /*2do
 - intro

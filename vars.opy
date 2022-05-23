@@ -4,7 +4,7 @@ enum FACTIONS:
     GAIA,
     BLOOD,
     RICH,
-    SOMBRUH
+    SOMBRUH # must be last
 
 enum STATS:
     DAMAGE,
@@ -26,13 +26,13 @@ enum QUEST_TYPE:
     VISIT,
     BLOOD,
     CRYPTO,
-    DAMAGE
+    DAMAGE # must be last
 
 enum EVENTS:
     GRAVITY,
     KILL,
     BLOOD,
-    CRYPTO
+    HERO # must be last
 
 # globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
 globalvar factNames = ["the children of gaia", "the cult of the blood god", "the bourgeoisie", "the crypto bros"]
@@ -45,7 +45,7 @@ globalvar factGoalStrings = [
     "advance sombra's nefarious agenda."
 ]
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 15 HP/s and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.",
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 15 HP/s and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
     "increase your held money by 10% when getting eliminations and double money earned from kills,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
@@ -136,7 +136,7 @@ globalvar questText = [
     "get a killing blow on:",
     "enter this faction's base:",
     "stay in the blood god",
-    "get money from mining crypto",
+    "get money from mining blizzcoin",
     "damage other players"
 ]
 globalvar antiCrashActivated
@@ -177,7 +177,8 @@ globalvar sombraQuips = [
 globalvar moonPos
 globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 18.1, -0.4), vect(132.2, 17.7, 11.1)]
 globalvar moonOwner
-globalvar eventTime
+globalvar eventType
+globalvar eventDetail
 
 playervar level = 1
 playervar money
