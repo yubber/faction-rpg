@@ -31,8 +31,6 @@ settings {
     }
 }
 
-#!include "vars.opy"
-
 #!define ShopCamPos vect(67.5, 8.5, -27.3)
 #!define ShopLookPos vect(69.5, 8.5, -28.5)
 #!define ShopLen len(shopItems)
@@ -47,6 +45,8 @@ settings {
 #!define MoneyMult (factLevels[eventPlayer.faction] * 0.1 + 1)
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
+
+#!include "vars.opy"
 
 ### inits ###
 def questComplete():
@@ -132,7 +132,7 @@ rule "global init":
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$40/s + $50/s per additional miner (join for ${}/s)".format(40 + minerCount*50), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$25/s + $50/s per additional miner (join for ${}/s)".format(25 + minerCount*50), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
@@ -167,21 +167,20 @@ rule "global init":
             evalOnce(factSpawns[i_init]), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, Color.WHITE, SpecVisibility.DEFAULT)
 
         wait()
-        # faction intros
-        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce("◀ {} ▶".format(factNames[i_init])), factCams[i_init] + 100 * (
-            (1.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
-            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 5, Clip.NONE, WorldTextReeval.VISIBILITY, Color.AQUA, SpecVisibility.DEFAULT)
-        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce(b"faction goal: {}".format(factGoalStrings[i_init])), factCams[i_init] + 100 * (
-            (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
-            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 3, Clip.NONE, WorldTextReeval.VISIBILITY, Color.SKY_BLUE, SpecVisibility.DEFAULT)
-        createInWorldText(localPlayer if localPlayer.faction == -1 and localPlayer.option == evalOnce(i_init) else [], evalOnce(factDescs[i_init]), factCams[i_init] + 100 * (
-            (-1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])), verticalAngleOfDirection(directionTowards(factCams[i_init], factSpawns[i_init])) - 90) +
-            3 * directionTowards(factCams[i_init], factSpawns[i_init])), 2, Clip.NONE, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
-        # controls
-        createInWorldText(localPlayer if localPlayer.faction == -1 else [], evalOnce(b"horizontal movement [a/d] to scroll | [{}] to select".format(buttonString(Button.JUMP))), factCams[localPlayer.option] + 100 * (
-            (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
-            3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 3, Clip.NONE, WorldTextReeval.VISIBILITY, Color.BLUE, SpecVisibility.DEFAULT)
-        wait()
+    # faction intros
+    createInWorldText(localPlayer if localPlayer.faction == -1 else [], "◀ {} ▶".format(factNames[localPlayer.option]), factCams[localPlayer.option] + 100 * (
+        (1.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
+        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.AQUA, SpecVisibility.DEFAULT)
+    createInWorldText(localPlayer if localPlayer.faction == -1 else [], b"faction goal: {}".format(factGoalStrings[localPlayer.option]), factCams[localPlayer.option] + 100 * (
+        (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
+        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 3, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.SKY_BLUE, SpecVisibility.DEFAULT)
+    createInWorldText(localPlayer if localPlayer.faction == -1 else [], factDescs[localPlayer.option], factCams[localPlayer.option] + 100 * (
+        (-1.2 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
+        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    # controls
+    createInWorldText(localPlayer if localPlayer.faction == -1 else [], b"horizontal movement [a/d] to scroll | [{}] to select".format(buttonString(Button.JUMP)), factCams[localPlayer.option] + 100 * (
+        (1.15 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
+        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.BLUE, SpecVisibility.DEFAULT)
 
     ### shop IWT ###
     # pos,scale,Clip,reeval,color,specvis
@@ -223,11 +222,11 @@ rule "global init":
         shopPrices[localPlayer.option]), ShopCamPos + 100 * (
         (-0.1 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-    /*createInWorldText(shoppers, "({} / {})".format(
-        localPlayer.option + 1, ShopLen), ShopCamPos + 100 * (
-        (-0.65 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
-        3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-    */wait()
+    # createInWorldText(shoppers, "({} / {})".format(
+    #     localPlayer.option + 1, ShopLen), ShopCamPos + 100 * (
+    #     (-0.65 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+    #     3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    wait()
 
     # more instructions
     createInWorldText(shoppers, "you have ${}".format(localPlayer.money), ShopCamPos + 100 * (
@@ -250,6 +249,9 @@ rule "global init":
     createInWorldText(getAllPlayers(), "you can pass\nthrough here", vect(140.9, 15.5, 47.5), 1.5, Clip.SURFACES,
         WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(140.9, 15.5, 47.5))) * 12), SpecVisibility.DEFAULT)
 
+    # tutorial?
+    createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.6, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+
 rule "player init":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
@@ -258,7 +260,7 @@ rule "player init":
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
         hudSubheader(eventPlayer, eventPlayer.getPosition(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
-    eventPlayer.disableGamemodeHud()
+    # eventPlayer.disableGamemodeHud() # gamemode hud used for events
     createInWorldText([] if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else getAllPlayers().exclude(eventPlayer),
         "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
         "\n{} faction enemy".format(iconString(Icon.SKULL)) if localPlayer.faction in eventPlayer.enemies else ""),
@@ -268,19 +270,43 @@ rule "player init":
     wait()
     if not eventPlayer.isDummy():
         shut()
+        # tutorial
+        eventPlayer.faction = -2
+        eventPlayer.startCamera(vect(-24.8, -0.1, 20.2), vect(-634.6, -41.2, 811.7), 15)
+        wait(0.080)
+        waitUntil(eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE), 9999)
+        if eventPlayer.isHoldingButton(Button.PRIMARY_FIRE):
+            # show tuto
+            for eventPlayer.option in range(len(tutoStrings)):
+                eventPlayer.startCamera(tutoCams[eventPlayer.option], tutoLooks[eventPlayer.option], 15)
+                wait(0.32)
+                smallMessage(eventPlayer, tutoStrings[eventPlayer.option])
+                wait(4)
+            eventPlayer.startCamera(moonPos + Vector.UP * 3, moonPos, 15)
+            wait(0.32)
+            smallMessage(eventPlayer, "you can also battle for possession of the moon spirit. it blesses you with money, ult charge and healing.")
+            wait(3)
+            smallMessage(eventPlayer, "money given is not increased by faction bonus. the spirit also moves occasionally, which means you must claim it again.")
+            wait(3)
+            smallMessage(eventPlayer, "now it's time to pick a faction.")
+            wait(2)
+        # pick faction
+        wait()
+        eventPlayer.option = 0
+        eventPlayer.faction = -1
         eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
         waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
+        eventPlayer.faction = eventPlayer.option
         resume()
         wait()
         eventPlayer.stopCamera()
-        eventPlayer.faction = eventPlayer.option
+
     if eventPlayer.faction == FACTIONS.GAIA:
         eventPlayer.stats[STATS.DAMAGE] = 75
         eventPlayer.stats[STATS.DEFENSE] = -75
         eventPlayer.setDamageDealt(75)
         eventPlayer.setDamageReceived(75)
         eventPlayer.startHoT(null, 9999, 15)
-
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
     # event update
@@ -315,7 +341,7 @@ rule "shop enter":
     playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 50)
     shoppers.append(eventPlayer)
 
-rule "shop/faction preview scroll":
+rule "shop/faction preview/tutorial scroll":
     @Event eachPlayer
     @Condition eventPlayer in shoppers or eventPlayer.faction == -1
     @Condition eventPlayer.getThrottle().x != 0
@@ -470,9 +496,9 @@ rule "enter crypto mine":
     createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
         vect(184.16, 27.5, 40.71), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     eventPlayer.mineFx = getLastCreatedEntity()
-    chase(eventPlayer.money, 999999999, rate=MoneyMult * (40 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
+    chase(eventPlayer.money, 999999999, rate=MoneyMult * (25 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.CRYPTO:
-        chase(eventPlayer.questProgress, eventPlayer.questGoal, rate=MoneyMult * (40 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
+        chase(eventPlayer.questProgress, eventPlayer.questGoal, rate=MoneyMult * (25 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
 
 rule "leave crypto mine":
     @Event eachPlayer
@@ -500,6 +526,7 @@ rule "beg":
 
 # moon spirit
 rule "moon init & repos":
+    @Condition isGameInProgress()
     # init
     createEffect(getAllPlayers(), Effect.CLOUD, Color.VIOLET, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createEffect(getAllPlayers(), Effect.RING, Color.ROSE, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -519,7 +546,9 @@ rule "moon claim":
     @Condition eventPlayer != moonOwner
     @Condition distance(eventPlayer, moonPos) < 3
     @Condition len(getPlayersInRadius(moonPos, 3, Team.ALL, LosCheck.SURFACES)) == 1
-    wait(1, Wait.ABORT_WHEN_FALSE)
+    wait(0.64, Wait.ABORT_WHEN_FALSE)
+    smallMessage(eventPlayer, "claiming moon spirit...".format(iconString(Icon.MOON)))
+    wait(1.5, Wait.ABORT_WHEN_FALSE)
     playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, moonPos + Vector.UP, 3)
     playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.VIOLET, moonPos + Vector.UP, 40)
     smallMessage(moonOwner, "{} someone more worthy has claimed me.".format(iconString(Icon.MOON)))
@@ -527,10 +556,11 @@ rule "moon claim":
     smallMessage(eventPlayer, "{} at your service.".format(iconString(Icon.MOON)))
 
 rule "moon reward":
+    @Condition isGameInProgress()
     while true:
-        moonOwner.setUltCharge(2 + moonOwner.getUltCharge())
-        heal(moonOwner, null, 10)
-        moonOwner.money += min(getTotalTimeElapsed() * 3, 6000)
+        moonOwner.setUltCharge(1 + moonOwner.getUltCharge())
+        heal(moonOwner, null, 5)
+        moonOwner.money += min(getTotalTimeElapsed(), 6000)
         wait(0.5)
 
 # quests
@@ -569,11 +599,11 @@ rule "get sombra quest":
             eventPlayer.questGoal = factNames[eventPlayer.questProgress]
             break
         case QUEST_TYPE.BLOOD:
-            eventPlayer.questGoal = min(random.uniform(1, 1.5) * eventPlayer.level/14, 45)
+            eventPlayer.questGoal = random.uniform(1, 1.5) * min(eventPlayer.level/50 + 5, 15)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.CRYPTO:
-            eventPlayer.questGoal = max(eventPlayer.level * 4, 900)
+            eventPlayer.questGoal = max(eventPlayer.level/2, 400)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.DAMAGE:
@@ -665,8 +695,8 @@ rule "flight":
 	@Condition eventPlayer.isHoldingButton(Button.JUMP)
 	@Condition eventPlayer.isAlive()
 	do:
-		eventPlayer.applyImpulse(Vector.UP, 20, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
-		wait(0.176)
+		eventPlayer.applyImpulse(Vector.UP, 5, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+		wait(0.16)
 	while RULE_CONDITION
 
 rule "rapid fire":
@@ -690,7 +720,11 @@ rule "min ult":
 
 # events
 rule "gen events":
-    wait(15)
+    @Condition isGameInProgress()
+    # @Condition getMatchTime() < 0.2
+    setObjectiveDescription(getAllPlayers(), "next event in:", HudReeval.VISIBILITY_AND_STRING)
+    setMatchTime(120)
+    wait(getMatchTime())
     eventType = -1
     while true:
         if eventType == -1:
@@ -699,29 +733,36 @@ rule "gen events":
                 case EVENTS.BLOOD:
                     eventDetail = random.randint(3, 7)
                     bigMessage(getAllPlayers(), "event: blood god grants {}x money!".format(eventDetail))
+                    setObjectiveDescription(getAllPlayers(), "event: blood god grants {}x money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
                     break
                 case EVENTS.KILL:
                     eventDetail = random.randint(3, 5) / 2
                     bigMessage(getAllPlayers(), "event: kills grant {}x money!".format(eventDetail))
+                    setObjectiveDescription(getAllPlayers(), "event: kills grant {}x money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
                     break
                 case EVENTS.GRAVITY:
                     eventDetail = random.randint(20, 60)
                     bigMessage(getAllPlayers(), "event: gravity is {}%.".format(eventDetail))
+                    setObjectiveDescription(getAllPlayers(), "event: gravity is {}%.".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
                     getAllPlayers().setGravity(eventDetail) # also used in player init
                     break
                 case EVENTS.HERO:
                     eventDetail = random.choice(getAllHeroes())
                     bigMessage(getAllPlayers(), "event: hero swap {}".format(heroIcon(eventDetail)))
+                    setObjectiveDescription(getAllPlayers(), "event: hero swap {}".format(heroIcon(eventDetail)), HudReeval.VISIBILITY_AND_STRING)
                     getAllPlayers().startForcingHero(eventDetail)
                     break
 
-            wait(random.randint(20, 35))
+            setMatchTime(random.randint(20, 35))
+            wait(getMatchTime())
         else:
             eventType = -1
             getAllPlayers().setGravity(100)
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            wait(random.randint(240, 360))
+            setObjectiveDescription(getAllPlayers(), "next event in:", HudReeval.VISIBILITY_AND_STRING)
+            setMatchTime(random.randint(240, 360))
+            wait(getMatchTime())
 # misc
 rule "kill handling":
     @Event playerDealtFinalBlow
@@ -739,9 +780,9 @@ rule "kill handling":
     ### enemy ###
     # killed enemy
     if eventPlayer.faction in victim.enemies:
-        smallMessage(eventPlayer, "killed a faction enemy. + ${}".format(MoneyMult * victim.level))
+        smallMessage(eventPlayer, "killed a faction enemy. + ${}".format(MoneyMult * victim.level * 3))
         smallMessage(victim, "you are no longer wanted by {}".format(factNames[eventPlayer.faction]))
-        eventPlayer.enemies.remove(victim.faction)
+        victim.enemies.remove(victim.faction)
         eventPlayer.money += MoneyMult * victim.level
     # killed innocent
     else:
@@ -842,7 +883,6 @@ rule "skip hero select phase, alter default gamemode conditions":
     @Condition not isGameInProgress()
     setMatchTime(4)
     wait(5)
-    pauseMatchTime()
     disableGamemodeCompletion()
     disableScoring()
     disableAnnouncer()
@@ -894,17 +934,17 @@ rule "debug bot spawn":
     getLastCreatedEntity().startForcingButton(Button.PRIMARY_FIRE)
 
 /*2do
-- intro
-- events
+- fix tutorial cams
+- hold crouch to buy fast
+- events & timer fix
 - bank & robbing
 - test small lumerico barrier glitch
+- offensive effects (hack at hp threshold)
 - add phase near bank mega health pack barrier
-- flight upgrade
 - rapid fire upgrade
 - earning $/s hud
 - trans color easter egg
 - bourgeois goals
-- need to disable healing on other gaias?
 - catchup'
 - compensate for low faction membership in objectives
 - random shop bg? (need to store)

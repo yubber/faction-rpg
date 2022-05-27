@@ -34,6 +34,17 @@ enum EVENTS:
     BLOOD,
     HERO # must be last
 
+globalvar tutoCams = [vect(179.6, 33.6, 65.3), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8)]
+globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + BankPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, 27.1)]
+globalvar tutoStrings = [
+    "welcome to the 131269th rpg gamemode in overwatch workshop.",
+    "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
+    "once you level up, the blood god will be more profitable. just make sure you can pay the price...",
+    "you can also accelerate global warming for a quick buck. but you'll have to learn to play nice.",
+    "getting quests from sombra also gives you money. this scales with your level.",
+    "increase your income by making progress for your faction.",
+    "hold crouch + interact to enter the shop and upgrade your stats."
+]
 # globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
 globalvar factNames = ["the children of gaia", "the cult of the blood god", "the bourgeoisie", "the crypto bros"]
 globalvar factCams = [vect(106.2, 17, 4.7), vect(89.6, 13.7, 32.8), vect(140.7, 12.5, 6.8), vect(200.7, 18.9, 70.4)]
@@ -87,7 +98,7 @@ globalvar shopPrices = [
     45, # heal
     35, # move
     15, # projectile
-    35, # kb dealt
+    45, # kb dealt
     80, # min ult
     100, # dmg received
     200, # shrink
@@ -103,7 +114,7 @@ globalvar statCaps = [
     500, # move
     500, # projectile
     500, # kb
-    99, # min ult
+    85, # min ult
     -40, # dmg received
     60, # shrink
     50000, # faction bonus
@@ -182,9 +193,9 @@ globalvar eventDetail
 
 playervar level = 1
 playervar money
-playervar faction = -1
+playervar faction = -1 # -2 is spaghetti for "not done viewing tutorial" (viewing or yet to choose to skip)
 playervar enemies = []
-playervar option = 0
+playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar stats = baseStats
 playervar questType = -1
 playervar questProgress
