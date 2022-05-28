@@ -284,7 +284,7 @@ rule "player init":
                 wait(4)
             eventPlayer.startCamera(moonPos + Vector.UP * 3, moonPos, 15)
             wait(0.32)
-            smallMessage(eventPlayer, "you can also battle for possession of the moon spirit. it blesses you with money, ult charge and healing.")
+            smallMessage(eventPlayer, "{} you can also battle for possession of the moon spirit. it blesses you with money, ult charge and healing.".format(iconString(Icon.MOON)))
             wait(3)
             smallMessage(eventPlayer, "money given is not increased by faction bonus. the spirit also moves occasionally, which means you must claim it again.")
             wait(3)
@@ -681,13 +681,15 @@ rule "rob":
 	@Condition eventPlayer.faction != FACTIONS.RICH
 	@Condition distance(eventPlayer, BankPos) < 5.5
 	@Condition factPoints[FACTIONS.RICH] > 0
-	do:
-		bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
-		wait(5)
+	smallMessage(eventPlayer, "robbing the bank. careful, the bourgeoisie have been alerted!")
+	bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
+	wait(2)
+	while (distance(eventPlayer, BankPos) < 5.5) and (factPoints[FACTIONS.RICH] > 0):
+		wait(3)
 			eventPlayer.money += 0.15 * factPoints[FACTIONS.RICH]
 			factPoints[FACTIONS.RICH] *= 0.85
 		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 4)
-	while RULE_CONDITION
+
 # shop upgrades
 rule "flight":
 	@Event eachPlayer
