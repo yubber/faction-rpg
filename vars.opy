@@ -1,6 +1,6 @@
 #!mainFile "main.opy"
 
-enum FACTIONS:
+enum FACTIONS: # -1 for none, -2 for yet to skip/finish tutorial
     GAIA,
     BLOOD,
     RICH,
@@ -21,14 +21,14 @@ enum STATS:
     FLIGHT,
     DAKKA
 
-enum QUEST_TYPE:
+enum QUEST_TYPE: # -1 for no quest but it's not using this enum. welp
     HITMAN,
     VISIT,
     BLOOD,
     CRYPTO,
     DAMAGE # must be last
 
-enum EVENTS:
+enum EVENTS: # -1 for no event but it's not using this enum. oops
     GRAVITY,
     KILL,
     BLOOD,
@@ -190,6 +190,8 @@ globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 1
 globalvar moonOwner
 globalvar eventType
 globalvar eventDetail
+globalvar eventText
+globalvar eventTime
 
 playervar level = 1
 playervar money

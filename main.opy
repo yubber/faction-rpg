@@ -151,12 +151,13 @@ rule "global init":
         "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE if factPoints[localPlayer.faction] < factLvUp[localPlayer.faction] else Color.ROSE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
 
     wait()
-    # hudText(localPlayer, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else "{} {}".format(questText[localPlayer.questType], localPlayer.questGoal), b"progress:", localPlayer.questProgress, HudPosition.TOP, 0, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
     progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal,
         "find sombra in lumérico for a quest" if localPlayer.questType == -1
         else " {}{}".format(questText[localPlayer.questType], b"{} / {} ".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b"{} ".format(localPlayer.questGoal)), HudPosition.TOP, 1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
     # hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
+    # event
+    hudHeader(localPlayer if localPlayer.faction >= 0 else [], "{} ({}s)".format(eventText, eventTime), HudPosition.TOP, 0, Color.WHITE if eventType != -1 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -285,15 +286,15 @@ rule "player init":
                 eventPlayer.startCamera(tutoCams[eventPlayer.option], tutoLooks[eventPlayer.option], 15)
                 wait(0.32)
                 smallMessage(eventPlayer, tutoStrings[eventPlayer.option])
-                wait(4)
+                wait(4.5)
             eventPlayer.startCamera(moonPos + Vector.UP * 6, moonPos, 15)
             wait(0.32)
             smallMessage(eventPlayer, "you can also battle for possession of the {} moon spirit.".format(iconString(Icon.MOON)))
-            wait(1.5)
-            smallMessage(eventPlayer, "it blesses you with money, ult charge and healing. money given is not increased by faction bonus, but scales with time.")
             wait(2)
+            smallMessage(eventPlayer, "it blesses you with money, ult charge and healing. money given is not increased by faction bonus, but scales with time.")
+            wait(3.5)
             smallMessage(eventPlayer, "the spirit also moves occasionally, which removes your ownership.")
-            wait(1)
+            wait(2.5)
             smallMessage(eventPlayer, "now it's time to pick a faction.")
             wait(2)
         # pick faction
@@ -305,6 +306,7 @@ rule "player init":
         eventPlayer.faction = eventPlayer.option
         wait()
         eventPlayer.stopCamera()
+        resume()
 
     if eventPlayer.faction == FACTIONS.GAIA:
         eventPlayer.stats[STATS.DAMAGE] = 75
@@ -314,7 +316,6 @@ rule "player init":
         eventPlayer.startHoT(null, 9999, 15)
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
-    resume()
     # eventPlayer.enableGamemodeHud()
     eventPlayer.enableHeroHud()
     # catchup
@@ -744,11 +745,11 @@ rule "gen events":
     @Condition isGameInProgress()
     # @Condition getMatchTime() < 0.2
     eventType = -1
+    eventText = "next event coming soon"
     wait(1.6)
-    setObjectiveDescription(getAllPlayers(), "to next event", HudReeval.VISIBILITY_AND_STRING)
-    setMatchTime(120)
-    wait()
-    wait(getMatchTime())
+    eventTime = 120
+    wait(eventTime)
+    chase(eventTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     # bigMessage(getAllPlayers(), getMatchTime())
     while true:
         if eventType == -1:
@@ -756,36 +757,33 @@ rule "gen events":
             switch eventType: # events with side effects are updated in player init
                 case EVENTS.BLOOD:
                     eventDetail = random.randint(3, 7)
-                    bigMessage(getAllPlayers(), "event: blood god grants x{} money!".format(eventDetail))
-                    setObjectiveDescription(getAllPlayers(), "event: blood god grants x{} money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
+                    eventText = "event: blood god grants x{} money!".format(eventDetail)
+                    bigMessage(getAllPlayers(), eventText)
                     break
                 case EVENTS.KILL:
                     eventDetail = random.randint(3, 5) / 2
-                    bigMessage(getAllPlayers(), "event: kills grant x{} money!".format(eventDetail))
-                    setObjectiveDescription(getAllPlayers(), "event: kills grant x{} money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
+                    eventText = "event: kills grant x{} money!".format(eventDetail)
                     break
                 case EVENTS.GRAVITY:
                     eventDetail = random.randint(20, 60)
-                    bigMessage(getAllPlayers(), "event: gravity is {}%.".format(eventDetail))
-                    setObjectiveDescription(getAllPlayers(), "event: gravity is {}%.".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
+                    eventText = "event: gravity is {}%.".format(eventDetail)
                     getAllPlayers().setGravity(eventDetail) # also used in player init
                     break
                 case EVENTS.HERO:
                     eventDetail = random.choice(getAllHeroes())
-                    bigMessage(getAllPlayers(), "event: hero swap {}".format(heroIcon(eventDetail)))
-                    setObjectiveDescription(getAllPlayers(), "event: hero swap {}".format(heroIcon(eventDetail)), HudReeval.VISIBILITY_AND_STRING)
+                    eventText = "event: hero swap {}".format(heroIcon(eventDetail))
                     getAllPlayers().startForcingHero(eventDetail)
                     break
-
+            bigMessage(getAllPlayers(), eventText)
             setMatchTime(random.randint(20, 35))
             wait()
             wait(getMatchTime())
         else:
             eventType = -1
+            eventText = "next event coming soon"
             getAllPlayers().setGravity(100)
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            setObjectiveDescription(getAllPlayers(), "to next event", HudReeval.VISIBILITY_AND_STRING)
             setMatchTime(random.randint(240, 360))
             # setMatchTime(30)
             wait()
@@ -963,8 +961,8 @@ rule "debug bot spawn":
 
 /*2do
 - fix tutorial cams
-- hold crouch to buy fast
 - events & timer fix
+- implement event effects for bonus type
 - bank & robbing
 - test small lumerico barrier glitch
 - offensive effects (hack at hp threshold)
@@ -972,10 +970,8 @@ rule "debug bot spawn":
 - rapid fire upgrade
 - earning $/s hud
 - trans color easter egg
-- bourgeois goals
-- catchup'
+- balance catchup
 - compensate for low faction membership in objectives
-- random shop bg? (need to store)
 
 faction select
 - children of gaia (goal: heal)
