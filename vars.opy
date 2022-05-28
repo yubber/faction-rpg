@@ -103,8 +103,8 @@ globalvar shopPrices = [
     100, # dmg received
     200, # shrink
     50,  # faction
-    1000100, # flight
-    1000100, # rapid
+    9996999, # flight
+    9996999, # rapid
 ]
 globalvar statCaps = [
     99999, # dmg
@@ -144,11 +144,11 @@ globalvar baseStats = [
 ]
 globalvar stealPortion
 globalvar questText = [
-    "get a killing blow on:",
-    "enter this faction's base:",
-    "stay in the blood god",
-    "get money from mining blizzcoin",
-    "damage other players"
+    "get a killing blow on ",
+    "enter the base of ",
+    "stay in the blood god for ",
+    "mine blizzcoin to get $",
+    "damage other players: "
 ]
 globalvar antiCrashActivated
 globalvar minerCount

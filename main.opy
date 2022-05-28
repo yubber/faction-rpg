@@ -132,7 +132,7 @@ rule "global init":
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$25/s + $50/s per additional miner (join for ${}/s)".format(25 + minerCount*50), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$25/s + $50/s per additional miner (join for ${}/s)".format(25 + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*50), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
@@ -147,13 +147,16 @@ rule "global init":
     wait()
     ### player money/faction/level/quest HUD ###
     hudText(localPlayer, heroIcon(localPlayer.getCurrentHero()), "level {}".format(localPlayer.level), b"${} ".format(localPlayer.money), HudPosition.LEFT, 0, Color.BLUE, Color.BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
-    hudText(localPlayer, abilityIconString(Hero.BRIGITTE, Button.ULTIMATE), "faction: {} | income bonus: {}%".format(factNames[localPlayer.faction], factLevels[localPlayer.faction]*10),
+    hudText(localPlayer, abilityIconString(Hero.BRIGITTE, Button.ULTIMATE), "{} | {}% income bonus".format(factNames[localPlayer.faction], factLevels[localPlayer.faction]*10),
         "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE if factPoints[localPlayer.faction] < factLvUp[localPlayer.faction] else Color.ROSE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
 
     wait()
     # hudText(localPlayer, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else "{} {}".format(questText[localPlayer.questType], localPlayer.questGoal), b"progress:", localPlayer.questProgress, HudPosition.TOP, 0, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
-    progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal, "find sombra in lumérico for a quest" if localPlayer.questType == -1 else questText[localPlayer.questType], HudPosition.TOP, 1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
-    hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
+    progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal,
+        "find sombra in lumérico for a quest" if localPlayer.questType == -1
+        else " {}{}".format(questText[localPlayer.questType], b"{} / {} ".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b"{} ".format(localPlayer.questGoal)), HudPosition.TOP, 1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, Color.GRAY if localPlayer.questType == -1 else Color.ORANGE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
+    # hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
+
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -195,11 +198,11 @@ rule "global init":
     createInWorldText(shoppers, "buy some magic fish! (by making a purchase you agree to not hold us liable for any injury or damage caused by use of our products.)\n ", ShopCamPos + 100 * (
         (1.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.GRAY, SpecVisibility.DEFAULT)
-    createInWorldText(shoppers, "horizontal movement to scroll\n ".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
-        (1.1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
-        3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-    createInWorldText(shoppers, "[{}/{}/{}] to buy 1/20/500 times\n ".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
-        (0.95 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+    # createInWorldText(shoppers, "\n".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
+    #     (0.95 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+    #     3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(shoppers, "horizontal movement to scroll\n[{}/{}/{}] to buy 1/20/500 times\nhold [{}] while buying to buy repeatedly".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE), buttonString(Button.CROUCH)), ShopCamPos + 100 * (
+        (1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     wait()
 	# icon row
@@ -250,7 +253,7 @@ rule "global init":
         WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(140.9, 15.5, 47.5))) * 12), SpecVisibility.DEFAULT)
 
     # tutorial?
-    createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.6, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.3, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
 rule "player init":
     @Event eachPlayer
@@ -260,7 +263,8 @@ rule "player init":
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
         hudSubheader(eventPlayer, eventPlayer.getPosition(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
-    # eventPlayer.disableGamemodeHud() # gamemode hud used for events
+    eventPlayer.disableGamemodeHud() # gamemode hud used for events
+    eventPlayer.disableHeroHUD()
     createInWorldText([] if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else getAllPlayers().exclude(eventPlayer),
         "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
         "\n{} faction enemy".format(iconString(Icon.SKULL)) if localPlayer.faction in eventPlayer.enemies else ""),
@@ -282,12 +286,14 @@ rule "player init":
                 wait(0.32)
                 smallMessage(eventPlayer, tutoStrings[eventPlayer.option])
                 wait(4)
-            eventPlayer.startCamera(moonPos + Vector.UP * 3, moonPos, 15)
+            eventPlayer.startCamera(moonPos + Vector.UP * 6, moonPos, 15)
             wait(0.32)
-            smallMessage(eventPlayer, "{} you can also battle for possession of the moon spirit. it blesses you with money, ult charge and healing.".format(iconString(Icon.MOON)))
-            wait(3)
-            smallMessage(eventPlayer, "money given is not increased by faction bonus. the spirit also moves occasionally, which means you must claim it again.")
-            wait(3)
+            smallMessage(eventPlayer, "you can also battle for possession of the {} moon spirit.".format(iconString(Icon.MOON)))
+            wait(1.5)
+            smallMessage(eventPlayer, "it blesses you with money, ult charge and healing. money given is not increased by faction bonus, but scales with time.")
+            wait(2)
+            smallMessage(eventPlayer, "the spirit also moves occasionally, which removes your ownership.")
+            wait(1)
             smallMessage(eventPlayer, "now it's time to pick a faction.")
             wait(2)
         # pick faction
@@ -297,7 +303,6 @@ rule "player init":
         eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
         waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
         eventPlayer.faction = eventPlayer.option
-        resume()
         wait()
         eventPlayer.stopCamera()
 
@@ -309,6 +314,11 @@ rule "player init":
         eventPlayer.startHoT(null, 9999, 15)
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
+    resume()
+    # eventPlayer.enableGamemodeHud()
+    eventPlayer.enableHeroHud()
+    # catchup
+    eventPlayer.money = getTotalTimeElapsed() * 120
     # event update
     switch eventType:
         case EVENTS.GRAVITY:
@@ -316,6 +326,7 @@ rule "player init":
             break
         case EVENTS.HERO:
             eventPlayer.startForcingHero(eventDetail)
+            break
 
 ### shop ###
 rule "shop enter":
@@ -332,6 +343,7 @@ rule "shop enter":
     wait(1, Wait.ABORT_WHEN_FALSE)
     smallMessage(eventPlayer, b"1... ")
     wait(1, Wait.ABORT_WHEN_FALSE)
+    eventPlayer.disableGamemodeHud()
 	playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.PURPLE, eventPlayer, 1.5)
     eventPlayer.startCamera(ShopCamPos, ShopLookPos, 20)
     shut()
@@ -438,8 +450,13 @@ rule "shop leave":
     eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
     wait(0.032)
     eventPlayer.setScore(eventPlayer.level / 100)
+    if eventPlayer.faction == FACTIONS.RICH: # bank
+        factPoints[eventPlayer.faction] += shopPrices[STATS.OBJECTIVE] * eventPlayer.stats[STATS.OBJECTIVE] / 2
+        eventPlayer.stats[STATS.OBJECTIVE] = 0
+    wait()
     shoppers.remove(eventPlayer)
     eventPlayer.stopCamera()
+    # eventPlayer.enableGamemodeHud()
     resume()
 
 ### game behaviors ###
@@ -457,8 +474,8 @@ rule "enter blood god":
     eventPlayer.bloodFx = getLastCreatedEntity()
 
     # give money
-    smallMessage(eventPlayer, b" ${}/s ".format(eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * MoneyMult))
-    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * MoneyMult, ChaseReeval.DESTINATION_AND_RATE)
+    smallMessage(eventPlayer, b" ${}/s ".format(eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult))
+    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.BLOOD:
         chase(eventPlayer.questProgress, 99999999999, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.faction == FACTIONS.BLOOD:
@@ -538,7 +555,7 @@ rule "moon init & repos":
         moonOwner = null
         playEffect(localPlayer, DynamicEffect.EXPLOSION_SOUND, Color.WHITE, localPlayer, 69)
         moonPos = random.choice(moonPosArr.exclude(moonPos))
-        smallMessage(getAllPlayers(), "{} the moon spirit has moved. claim it to gain its power.".format(iconString(Icon.MOON)))
+        smallMessage(localPlayer if localPlayer.faction >= 0 else [], "{} the moon spirit has moved. claim it to gain its power.".format(iconString(Icon.MOON)))
         wait(random.randint(90, 210))
 
 rule "moon claim":
@@ -546,7 +563,7 @@ rule "moon claim":
     @Condition eventPlayer != moonOwner
     @Condition distance(eventPlayer, moonPos) < 3
     @Condition len(getPlayersInRadius(moonPos, 3, Team.ALL, LosCheck.SURFACES)) == 1
-    wait(0.64, Wait.ABORT_WHEN_FALSE)
+    wait(0.32, Wait.ABORT_WHEN_FALSE)
     smallMessage(eventPlayer, "claiming moon spirit...".format(iconString(Icon.MOON)))
     wait(1.5, Wait.ABORT_WHEN_FALSE)
     playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, moonPos + Vector.UP, 3)
@@ -557,11 +574,13 @@ rule "moon claim":
 
 rule "moon reward":
     @Condition isGameInProgress()
-    while true:
+    @Condition moonOwner != null
+    do:
         moonOwner.setUltCharge(1 + moonOwner.getUltCharge())
         heal(moonOwner, null, 5)
         moonOwner.money += min(getTotalTimeElapsed(), 6000)
         wait(0.5)
+    while RULE_CONDITION
 
 # quests
 rule "get sombra quest":
@@ -724,23 +743,26 @@ rule "min ult":
 rule "gen events":
     @Condition isGameInProgress()
     # @Condition getMatchTime() < 0.2
-    setObjectiveDescription(getAllPlayers(), "next event in:", HudReeval.VISIBILITY_AND_STRING)
-    setMatchTime(120)
-    wait(getMatchTime())
     eventType = -1
+    wait(1.6)
+    setObjectiveDescription(getAllPlayers(), "to next event", HudReeval.VISIBILITY_AND_STRING)
+    setMatchTime(120)
+    wait()
+    wait(getMatchTime())
+    # bigMessage(getAllPlayers(), getMatchTime())
     while true:
         if eventType == -1:
             eventType = random.randint(0, EVENTS.HERO)
             switch eventType: # events with side effects are updated in player init
                 case EVENTS.BLOOD:
                     eventDetail = random.randint(3, 7)
-                    bigMessage(getAllPlayers(), "event: blood god grants {}x money!".format(eventDetail))
-                    setObjectiveDescription(getAllPlayers(), "event: blood god grants {}x money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
+                    bigMessage(getAllPlayers(), "event: blood god grants x{} money!".format(eventDetail))
+                    setObjectiveDescription(getAllPlayers(), "event: blood god grants x{} money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
                     break
                 case EVENTS.KILL:
                     eventDetail = random.randint(3, 5) / 2
-                    bigMessage(getAllPlayers(), "event: kills grant {}x money!".format(eventDetail))
-                    setObjectiveDescription(getAllPlayers(), "event: kills grant {}x money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
+                    bigMessage(getAllPlayers(), "event: kills grant x{} money!".format(eventDetail))
+                    setObjectiveDescription(getAllPlayers(), "event: kills grant x{} money!".format(eventDetail), HudReeval.VISIBILITY_AND_STRING)
                     break
                 case EVENTS.GRAVITY:
                     eventDetail = random.randint(20, 60)
@@ -756,15 +778,19 @@ rule "gen events":
                     break
 
             setMatchTime(random.randint(20, 35))
+            wait()
             wait(getMatchTime())
         else:
             eventType = -1
             getAllPlayers().setGravity(100)
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            setObjectiveDescription(getAllPlayers(), "next event in:", HudReeval.VISIBILITY_AND_STRING)
+            setObjectiveDescription(getAllPlayers(), "to next event", HudReeval.VISIBILITY_AND_STRING)
             setMatchTime(random.randint(240, 360))
+            # setMatchTime(30)
+            wait()
             wait(getMatchTime())
+            # bigMessage(getAllPlayers(), getMatchTime())
 # misc
 rule "kill handling":
     @Event playerDealtFinalBlow
@@ -782,14 +808,14 @@ rule "kill handling":
     ### enemy ###
     # killed enemy
     if eventPlayer.faction in victim.enemies:
-        smallMessage(eventPlayer, "killed a faction enemy. + ${}".format(MoneyMult * victim.level * 3))
-        smallMessage(victim, "you are no longer wanted by {}".format(factNames[eventPlayer.faction]))
+        smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(MoneyMult * victim.level * 3, FactPointsMult * victim.level))
+        smallMessage(victim, "you are no longer wanted by {}.".format(factNames[eventPlayer.faction]))
         victim.enemies.remove(victim.faction)
         eventPlayer.money += MoneyMult * victim.level
     # killed innocent
     else:
         if not victim.faction in eventPlayer.enemies:
-            smallMessage(eventPlayer, "you are now wanted by {}.".format(factNames[victim.faction]))
+            smallMessage(eventPlayer, "{} you are now wanted by {}.".format(iconString(Icon.SKULL), factNames[victim.faction]))
             eventPlayer.enemies.append(victim.faction)
 
 rule "respawn":
@@ -829,8 +855,8 @@ rule "gaia healing credit":
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition healee != eventPlayer
     @Condition eventHealing > 0
-    factPoints[eventPlayer.faction] += eventHealing * FactPointsMult * (0.5 if eventPlayer.faction == FACTIONS.GAIA else 1)
-    eventPlayer.money += 10 * (1 + 0.2 * factLevels[eventPlayer.faction]) * (0.5 if eventPlayer.faction == FACTIONS.GAIA else 1)
+    factPoints[eventPlayer.faction] += eventHealing * FactPointsMult * (0.5 if healee.faction == FACTIONS.GAIA else 1)
+    eventPlayer.money += 10 * (1 + 0.2 * factLevels[eventPlayer.faction]) * (0.5 if healee.faction == FACTIONS.GAIA else 1)
 
 rule "gaia revenge":
     @Event playerDealtDamage
