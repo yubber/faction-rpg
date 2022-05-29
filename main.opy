@@ -58,7 +58,7 @@ def questComplete():
 	else:
 		smallMessage(eventPlayer, "{} well done.".format(heroIcon(Hero.SOMBRA)))
 
-    eventPlayer.money += (2000 + 3 * eventPlayer.level) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1)
+    eventPlayer.money += (2000 + 2 * eventPlayer.level) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1) * MoneyMult
 
 	eventPlayer.questType = -1
 	eventPlayer.questProgress = -1
@@ -120,23 +120,23 @@ rule "global init":
     createEffect(getAllPlayers(), Effect.PICKUP_SOUND, Color.PURPLE, vect(165.7, 12, 36.2), 35, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.GOOD_AURA, Color.PURPLE, vect(165.7, 12, 36.2),
         1.5 + 0.3*sin(3*getTotalTimeElapsed() % 6.283), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-    createInWorldText(getAllPlayers(), "{} get quest ({})\ncooldown: 2s".format(heroIcon(Hero.SOMBRA), buttonString(Button.INTERACT)), vect(165.7, 12, 36.2), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "{} get quest ({})\ncooldown: 3s".format(heroIcon(Hero.SOMBRA), buttonString(Button.INTERACT)), vect(165.7, 12, 36.2), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
     ### gold mine ###
     createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
-    createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
+    createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES_SOUND, Color.YELLOW, GoldPos, 5*GoldRadius, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "beg from lumérico president (${}/s split among beggars)".format(BegMoney), GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join now for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, (CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney) * MoneyMult), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "bank | ${}\n{}".format(factPoints[FACTIONS.RICH],
+    createInWorldText(getAllPlayers(), "bank | ${} / {}\n{}".format(factPoints[FACTIONS.RICH], factLvUp[FACTIONS.RICH],
         "stand here to steal (15% / 5s)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
@@ -157,7 +157,7 @@ rule "global init":
     # hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     # event
-    hudHeader(localPlayer if localPlayer.faction >= 0 else [], "{} ({}s)".format(eventText, eventTime), HudPosition.TOP, 0, Color.WHITE if eventType != -1 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
+    hudHeader(localPlayer if localPlayer.faction >= 0 else [], "{} ({}s)".format(eventText, round(eventTime)), HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -250,11 +250,24 @@ rule "global init":
     ### barrier text ###
     createInWorldText(getAllPlayers(), "you can pass through here", vect(138.9, 14, 28.2), 1.5, Clip.SURFACES,
         WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(138.9, 14, 28.2))) * 12), SpecVisibility.DEFAULT)
-    createInWorldText(getAllPlayers(), "you can pass\nthrough here", vect(140.9, 15.5, 47.5), 1.5, Clip.SURFACES,
+    createInWorldText(getAllPlayers(), "you can pass\nthrough here", vect(140.58, 16.2, 47.33), 1.5, Clip.SURFACES,
         WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(140.9, 15.5, 47.5))) * 12), SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "you can pass\nthrough here", vect(158.85, 13, 5.75), 1.5, Clip.SURFACES,
+        WorldTextReeval.VISIBILITY_AND_COLOR, rgba(255, 255, 255, (25-distance(localPlayer, vect(158.85, 13, 5.75))) * 12), SpecVisibility.DEFAULT)
 
     # tutorial?
     createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.3, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+
+    # troon
+    for i_init in range(20):
+        createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 41 - i_init*0.125, -26.06), vect(41.68, 41 - i_init*0.25, -28.89),
+            Color.SKY_BLUE if abs(4.5-i_init) >= 3.5 else (
+                Color.ROSE if abs(4.5-i_init) >= 2.5 else Color.WHITE
+            ), EffectReeval.VISIBILITY)
+        # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 40.5, -26.06), vect(41.68, 40.5, -28.89), Color.ROSE, EffectReeval.VISIBILITY)
+        # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 40, -26.06), vect(41.68, 40, -28.89), Color.WHITE, EffectReeval.VISIBILITY)
+        # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 39.5, -26.06), vect(41.68, 39.5, -28.89), Color.ROSE, EffectReeval.VISIBILITY)
+        # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 39, -26.06), vect(41.68, 39, -28.89), Color.SKY_BLUE, EffectReeval.VISIBILITY)
 
 rule "player init":
     @Event eachPlayer
@@ -286,15 +299,15 @@ rule "player init":
                 eventPlayer.startCamera(tutoCams[eventPlayer.option], tutoLooks[eventPlayer.option], 15)
                 wait(0.32)
                 smallMessage(eventPlayer, tutoStrings[eventPlayer.option])
-                wait(4.5)
+                wait(5)
             eventPlayer.startCamera(moonPos + Vector.UP * 6, moonPos, 15)
             wait(0.32)
             smallMessage(eventPlayer, "you can also battle for possession of the {} moon spirit.".format(iconString(Icon.MOON)))
             wait(2)
             smallMessage(eventPlayer, "it blesses you with money, ult charge and healing. money given is not increased by faction bonus, but scales with time.")
-            wait(3.5)
+            wait(4.5)
             smallMessage(eventPlayer, "the spirit also moves occasionally, which removes your ownership.")
-            wait(2.5)
+            wait(3)
             smallMessage(eventPlayer, "now it's time to pick a faction.")
             wait(2)
         # pick faction
@@ -319,7 +332,7 @@ rule "player init":
     # eventPlayer.enableGamemodeHud()
     eventPlayer.enableHeroHud()
     # catchup
-    eventPlayer.money = getTotalTimeElapsed() * 120
+    eventPlayer.money = getTotalTimeElapsed() * 90
     # event update
     switch eventType:
         case EVENTS.GRAVITY:
@@ -452,7 +465,7 @@ rule "shop leave":
     wait(0.032)
     eventPlayer.setScore(eventPlayer.level / 100)
     if eventPlayer.faction == FACTIONS.RICH: # bank
-        factPoints[eventPlayer.faction] += shopPrices[STATS.OBJECTIVE] * eventPlayer.stats[STATS.OBJECTIVE] / 2
+        factPoints[eventPlayer.faction] += shopPrices[STATS.OBJECTIVE] * (eventPlayer.stats[STATS.OBJECTIVE] - 100) / 4
         eventPlayer.stats[STATS.OBJECTIVE] = 0
     wait()
     shoppers.remove(eventPlayer)
@@ -619,19 +632,19 @@ rule "get sombra quest":
             eventPlayer.questGoal = factNames[eventPlayer.questProgress]
             break
         case QUEST_TYPE.BLOOD:
-            eventPlayer.questGoal = random.uniform(1, 1.5) * min(eventPlayer.level/50 + 5, 15)
+            eventPlayer.questGoal = random.uniform(1, 1.3) * min(eventPlayer.level/50 + 5, 15)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.CRYPTO:
-            eventPlayer.questGoal = max(eventPlayer.level/2, 400)
+            eventPlayer.questGoal = max(eventPlayer.level/2, 400) * random.uniform(0.8, 1.3)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.DAMAGE:
-            eventPlayer.questGoal = random.randint(500, 700) + eventPlayer.level / 5
+            eventPlayer.questGoal = random.randint(150, 270) + eventPlayer.level / 10
             eventPlayer.questProgress = 0
             break
 
-    wait(2, Wait.IGNORE_CONDITION)
+    wait(3, Wait.IGNORE_CONDITION)
 
 rule "numerical quest goal reached":
     @Event eachPlayer
@@ -666,11 +679,11 @@ rule "enter base & update faction level":
     # update faction level (points to next level = 50x^2 + 500x + 5000)
     while factPoints[eventPlayer.faction] > factLvUp[eventPlayer.faction]:
         playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.SKY_BLUE, eventPlayer.getPosition(), 1)
-        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.SKY_BLUE, eventPlayer.getPosition(), 30)
+        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.SKY_BLUE, eventPlayer.getPosition(), 90)
         factPoints[eventPlayer.faction] -= factLvUp[eventPlayer.faction]
         factLevels[eventPlayer.faction] += 1
         factLvUp[eventPlayer.faction] = 45 * factLevels[eventPlayer.faction]**2 + 650*factLevels[eventPlayer.faction] + 6000
-        wait(0.5)
+        wait(0.08)
 
 rule "leave base":
     @Event eachPlayer
@@ -701,6 +714,7 @@ rule "rob":
 	@Condition eventPlayer.faction != FACTIONS.RICH
 	@Condition distance(eventPlayer, BankPos) < 5.5
 	@Condition factPoints[FACTIONS.RICH] > 0
+    wait(0.16, Wait.ABORT_WHEN_FALSE)
 	smallMessage(eventPlayer, "robbing the bank. careful, the bourgeoisie have been alerted!")
 	bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
 	wait(2)
@@ -733,7 +747,7 @@ rule "rapid fire":
 rule "min ult":
     @Event eachPlayer
     @Condition eventPlayer.isAlive()
-    @Condition eventPlayer.hasSpawned()
+    # @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.getUltCharge() < eventPlayer.stats[STATS.ULT]
     do:
         eventPlayer.setUltCharge(eventPlayer.stats[STATS.ULT])
@@ -749,7 +763,7 @@ rule "gen events":
     wait(1.6)
     eventTime = 120
     wait(eventTime)
-    chase(eventTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
+    chase(eventTime, -5, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     # bigMessage(getAllPlayers(), getMatchTime())
     while true:
         if eventType == -1:
@@ -775,19 +789,19 @@ rule "gen events":
                     getAllPlayers().startForcingHero(eventDetail)
                     break
             bigMessage(getAllPlayers(), eventText)
-            setMatchTime(random.randint(20, 35))
+            eventTime = random.randint(20, 35)
             wait()
-            wait(getMatchTime())
+            wait(eventTime)
         else:
             eventType = -1
             eventText = "next event coming soon"
             getAllPlayers().setGravity(100)
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            setMatchTime(random.randint(240, 360))
+            eventTime = random.randint(240, 360)
             # setMatchTime(30)
             wait()
-            wait(getMatchTime())
+            wait(eventTime)
             # bigMessage(getAllPlayers(), getMatchTime())
 # misc
 rule "kill handling":
@@ -808,8 +822,8 @@ rule "kill handling":
     if eventPlayer.faction in victim.enemies:
         smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(MoneyMult * victim.level * 3, FactPointsMult * victim.level))
         smallMessage(victim, "you are no longer wanted by {}.".format(factNames[eventPlayer.faction]))
-        victim.enemies.remove(victim.faction)
-        eventPlayer.money += MoneyMult * victim.level
+        victim.enemies.remove(eventPlayer.faction)
+        eventPlayer.money += MoneyMult * victim.level * 3
     # killed innocent
     else:
         if not victim.faction in eventPlayer.enemies:
@@ -839,12 +853,13 @@ rule "cult lifesteal & blood":
 rule "gaia healing":
     @Event eachPlayer
     @Condition eventPlayer.faction == FACTIONS.GAIA
+    @Condition eventPlayer.isAlive()
     @Condition eventPlayer.isHoldingButton(Button.CROUCH)
     wait(0.5, Wait.ABORT_WHEN_FALSE)
     # @Condition distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL)) <= 3
     smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
-    while eventPlayer.isCrouching():
-        heal([x for x in getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES) if x != eventPlayer], eventPlayer, 6)
+    while eventPlayer.isCrouching() and eventPlayer.isAlive():
+        heal(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), eventPlayer, 6)
         playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.LIME_GREEN, eventPlayer.getPosition(), 3)
         wait(0.1)
 
@@ -873,9 +888,10 @@ rule "crypto melee":
 ### misc ###
 rule "heal when stat > 10000":
     @Event playerReceivedHealing
-    @Condition eventPlayer.stats[STATS.HEALING] > 10000
+    @Condition eventPlayer.stats[STATS.HEALING] > 1000
     # heal(eventPlayer, healer, eventHealing * (10000 - eventPlayer.stats[STATS.HEALING]) / eventPlayer.stats[STATS.HEALING])
-    heal(eventPlayer, healer, eventHealing * (10000/eventPlayer.stats[STATS.HEALING] - 1) )
+    heal(eventPlayer, null, eventHealing * (eventPlayer.stats[STATS.HEALING] - 1000)/1000 )
+    # null to avoid looping
 rule "big door to lumerico barrier":
     @Event eachPlayer
     @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) <= 3.2
@@ -887,10 +903,18 @@ rule "big door to lumerico barrier":
 
 rule "small door to lumerico barrier":
     @Event eachPlayer
-    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) <= 1.25
-    @Condition eventPlayer.getPosition().y <= 15.5
+    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) <= 1.15
+    @Condition eventPlayer.getPosition().y <= 15
     eventPlayer.disableEnvironmentCollision(false)
-    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) > 1.25 or eventPlayer.getPosition().y > 15.5, 9999)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) > 1.15 or eventPlayer.getPosition().y > 15, 9999)
+    eventPlayer.enableEnvironmentCollision()
+
+rule "small door from bank barrier":
+    @Event eachPlayer
+    @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(159.57, 0, 5.97)) <= 1.3
+    @Condition eventPlayer.getPosition().y <= 12
+    eventPlayer.disableEnvironmentCollision(false)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(159.57, 0, 5.97)) > 1.3 or eventPlayer.getPosition().y > 12, 9999)
     eventPlayer.enableEnvironmentCollision()
 
 rule "player leave cleanup":
@@ -962,6 +986,7 @@ rule "debug bot spawn":
 /*2do
 - fix tutorial cams
 - events & timer fix
+- reverse hero swap event
 - implement event effects for bonus type
 - bank & robbing
 - test small lumerico barrier glitch
@@ -969,7 +994,6 @@ rule "debug bot spawn":
 - add phase near bank mega health pack barrier
 - rapid fire upgrade
 - earning $/s hud
-- trans color easter egg
 - balance catchup
 - compensate for low faction membership in objectives
 

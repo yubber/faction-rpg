@@ -35,7 +35,7 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     HERO # must be last
 
 globalvar tutoCams = [vect(179.6, 33.6, 65.3), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8)]
-globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, 27.1)]
+globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1)]
 globalvar tutoStrings = [
     "welcome to the 131269th rpg gamemode in overwatch workshop.",
     "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
@@ -88,7 +88,7 @@ globalvar shopItems = [
     "damage received",
     "player shrinking",
     "faction goal progress",
-    "flight",
+    "flight (hold space)",
     "rapid fire"
 ]
 # shop prices & stat caps in balance.opy
@@ -158,7 +158,7 @@ globalvar sombraQuips = [
 ]
 globalvar moonPos
 globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 18.1, -0.4), vect(132.2, 17.7, 11.1)]
-globalvar moonOwner
+globalvar moonOwner # briefly used for trooning
 globalvar eventType
 globalvar eventDetail
 globalvar eventText
