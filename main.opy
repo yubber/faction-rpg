@@ -41,12 +41,12 @@ settings {
 #!define CryptoPos vect(184.1, 13.8, 40.8)
 #!define CryptoRadius 5.7
 #!define BankPos vect(159.1, 10, -7.7)
-#!define BaseFactionMembers 4
 #!define MoneyMult (factLevels[eventPlayer.faction] * 0.1 + 1)
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
 
 #!include "vars.opy"
+#!include "balance.opy"
 
 ### inits ###
 def questComplete():
@@ -58,7 +58,7 @@ def questComplete():
 	else:
 		smallMessage(eventPlayer, "{} well done.".format(heroIcon(Hero.SOMBRA)))
 
-    eventPlayer.money += max(eventPlayer.level * 0.3, 550) * MoneyMult * max(1, 0.5*sqrt(eventPlayer.level)) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1)
+    eventPlayer.money += (2000 + 3 * eventPlayer.level) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1)
 
 	eventPlayer.questType = -1
 	eventPlayer.questProgress = -1
@@ -127,12 +127,12 @@ rule "global init":
     createEffect(getAllPlayers(), Effect.RING, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES, Color.YELLOW, GoldPos + Vector.UP, GoldRadius, EffectReeval.VISIBILITY)
     createEffect(getAllPlayers(), Effect.SPARKLES_SOUND, Color.YELLOW, GoldPos, 5*GoldRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "beg from lumérico president ($60/s split among beggars)", GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "beg from lumérico president (${}/s split among beggars)".format(BegMoney), GoldPos + 6*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n$25/s + $50/s per additional miner (join for ${}/s)".format(25 + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*50), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
@@ -475,8 +475,8 @@ rule "enter blood god":
     eventPlayer.bloodFx = getLastCreatedEntity()
 
     # give money
-    smallMessage(eventPlayer, b" ${}/s ".format(eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult))
-    chase(eventPlayer.money, 9999999999, rate=eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult, ChaseReeval.DESTINATION_AND_RATE)
+    smallMessage(eventPlayer, b" ${}/s ".format(BloodFormula))
+    chase(eventPlayer.money, 9999999999, rate=BloodFormula, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.BLOOD:
         chase(eventPlayer.questProgress, 99999999999, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.faction == FACTIONS.BLOOD:
@@ -514,9 +514,9 @@ rule "enter crypto mine":
     createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
         vect(184.16, 27.5, 40.71), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     eventPlayer.mineFx = getLastCreatedEntity()
-    chase(eventPlayer.money, 999999999, rate=MoneyMult * (25 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
+    chase(eventPlayer.money, 999999999, rate=MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.CRYPTO:
-        chase(eventPlayer.questProgress, eventPlayer.questGoal, rate=MoneyMult * (25 + 50 * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
+        chase(eventPlayer.questProgress, eventPlayer.questGoal, rate=MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
 
 rule "leave crypto mine":
     @Event eachPlayer
@@ -536,7 +536,7 @@ rule "beg":
     @Condition eventPlayer.isAlive()
     @Condition distance(GoldPos, eventPlayer.getPosition()) <= GoldRadius
     do:
-        eventPlayer.money += MoneyMult * 60 / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
+        eventPlayer.money += MoneyMult * BegMoney / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
         playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.YELLOW, eventPlayer.getPosition() + Vector.UP, 2)
         playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 10)
         wait(1)

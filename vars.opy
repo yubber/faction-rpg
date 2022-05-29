@@ -35,7 +35,7 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     HERO # must be last
 
 globalvar tutoCams = [vect(179.6, 33.6, 65.3), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8)]
-globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + BankPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, 27.1)]
+globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, 27.1)]
 globalvar tutoStrings = [
     "welcome to the 131269th rpg gamemode in overwatch workshop.",
     "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
@@ -91,36 +91,7 @@ globalvar shopItems = [
     "flight",
     "rapid fire"
 ]
-globalvar shopPrices = [
-    60, # dmg
-    40, # ammo
-    55, # hp
-    45, # heal
-    35, # move
-    15, # projectile
-    45, # kb dealt
-    80, # min ult
-    100, # dmg received
-    200, # shrink
-    50,  # faction
-    9996999, # flight
-    9996999, # rapid
-]
-globalvar statCaps = [
-    99999, # dmg
-    1000, # ammo
-    10000, # hp
-    99999, # heal
-    500, # move
-    500, # projectile
-    500, # kb
-    85, # min ult
-    -40, # dmg received
-    60, # shrink
-    50000, # faction bonus
-    1, # flight
-    1 # rapid
-]
+# shop prices & stat caps in balance.opy
 globalvar factMembers = [0, 0, 0, 0]
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
 globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels.
@@ -170,7 +141,7 @@ globalvar sombraQuips = [
         "ngl the blood god is kinda thicc tho",
         "no need to be scared, it's just an eldritch god.",
         "i've seen the blood god's browser history. i wish i didn't.",
-        "would you be surprised if i told you people write a ton of fanfics of the blood god? no? i guess i should've known."
+        "would you be surprised if i told you there's a ton of blood god fanfics? no? i guess i should've known."
     ],
     [ # crypto
         "those gaia nerds need to be taken down a peg. thankfully the mine is coal powered.",
