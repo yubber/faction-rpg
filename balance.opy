@@ -12,14 +12,14 @@ globalvar shopPrices = [
     100, # dmg received
     4000, # shrink
     50,  # faction
-    9996999, # flight
-    9996999, # rapid
+    1069420, # flight
+    3069420, # rapid
 ]
 globalvar statCaps = [
     99999, # dmg
     1000, # ammo
     10000, # hp
-    99999, # heal
+    50000, # heal
     500, # move
     500, # projectile
     500, # kb
@@ -31,8 +31,8 @@ globalvar statCaps = [
     1 # rapid
 ]
 #!define BaseFactionMembers 4
-#!define CryptoBaseMoney 45
-#!define CryptoAddMoney 70
+#!define CryptoBaseMoney 35
+#!define CryptoAddMoney 45
 #!define BegMoney 80
 # bloodformula does not sync with text on blood god or cult faction intro
-#!define BloodFormula eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult
+#!define BloodFormula (eventPlayer.getMaxHealth() * (0.15 if eventPlayer.faction == FACTIONS.BLOOD else 0.1) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult)

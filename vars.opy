@@ -1,5 +1,15 @@
 #!mainFile "main.opy"
 
+#!define ShopCamPos vect(67.5, 8.5, -27.3)
+#!define ShopLookPos vect(69.5, 8.5, -28.5)
+#!define BloodRadius 4.7
+#!define QuestPos vect(165.7, 12, 36.2)
+#!define GoldPos vect(123.2, 7, -17.2)
+#!define GoldRadius 5.5
+#!define CryptoPos vect(184.1, 13.8, 40.8)
+#!define CryptoRadius 5.7
+#!define BankPos vect(159.1, 10, -7.7)
+
 enum FACTIONS: # -1 for none, -2 for yet to skip/finish tutorial
     GAIA,
     BLOOD,
@@ -34,6 +44,7 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     BLOOD,
     HERO # must be last
 
+### tutorial ###
 globalvar tutoCams = [vect(179.6, 33.6, 65.3), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8)]
 globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1)]
 globalvar tutoStrings = [
@@ -45,7 +56,8 @@ globalvar tutoStrings = [
     "increase your income by making progress for your faction.",
     "hold crouch + interact to enter the shop and upgrade your stats."
 ]
-# globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
+
+### factions ###
 globalvar factNames = ["the children of gaia", "the cult of the blood god", "the bourgeoisie", "the crypto bros"]
 globalvar factCams = [vect(106.2, 17, 4.7), vect(89.6, 13.7, 32.8), vect(140.7, 12.5, 6.8), vect(200.7, 18.9, 70.4)]
 globalvar factSpawns = [vect(98.38, 14, 14.15), vect(66, 15.4, 14.5), vect(144.65, 11, -8.53), vect(184.13, 19, 73.26)]
@@ -56,11 +68,17 @@ globalvar factGoalStrings = [
     "advance sombra's nefarious agenda."
 ]
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 15 HP/s and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nhealing faction mates only grants half the money & faction points.",
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
     "increase your held money by 10% when getting eliminations and double money earned from kills,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
+globalvar factMembers = [0, 0, 0, 0]
+globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
+globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels.
+globalvar factLvUp = [5000, 5000, 5000, 5000]
+
+### shop ###
 globalvar shopIcons = [
     abilityIconString(Hero.GENJI, Button.ULTIMATE),
     abilityIconString(Hero.DVA, Button.ABILITY_2),
@@ -91,12 +109,6 @@ globalvar shopItems = [
     "flight (hold space)",
     "rapid fire"
 ]
-# shop prices & stat caps in balance.opy
-globalvar factMembers = [0, 0, 0, 0]
-globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
-globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels.
-globalvar factLvUp = [5000, 5000, 5000, 5000]
-globalvar i_init
 globalvar shoppers = []
 globalvar baseStats = [
     100, # dmg
@@ -113,7 +125,14 @@ globalvar baseStats = [
     0, # flight
     0, # rapid
 ]
+# globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
+#!define ShopLen len(shopItems)
+# shop prices & stat caps in balance.opy
+
+globalvar i_init
 globalvar stealPortion
+
+### quests ###
 globalvar questText = [
     "get a killing blow on ",
     "enter the base of ",
@@ -121,8 +140,6 @@ globalvar questText = [
     "mine blizzcoin to get $",
     "damage other players: "
 ]
-globalvar antiCrashActivated
-globalvar minerCount
 globalvar sombraQuips = [
     [ # kill
         "i want that bitch dead. go.",
@@ -156,6 +173,11 @@ globalvar sombraQuips = [
         "peace is overrated. those gaia hippies don't know what they're talking about."
     ]
 ]
+
+### crypto mine ###
+globalvar minerCount
+
+### moon ###
 globalvar moonPos
 globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 18.1, -0.4), vect(132.2, 17.7, 11.1)]
 globalvar moonOwner # briefly used for trooning
@@ -164,17 +186,27 @@ globalvar eventDetail
 globalvar eventText
 globalvar eventTime
 
+### general ###
+globalvar antiCrashActivated
+
+### personal ###
 playervar level = 1
 playervar money
-playervar faction = -1 # -2 is spaghetti for "not done viewing tutorial" (viewing or yet to choose to skip)
-playervar enemies = []
-playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar stats = baseStats
+playervar hudId
+playervar option = 0 # also used for tutorial i in for loop. sorry
+playervar buyqty # also used for blood time. sorry
+
+### quests ###
 playervar questType = -1
 playervar questProgress
 playervar questGoal
-playervar buyqty # also used for blood time. sorry
+
+### mines ###
 playervar bloodDoT
 playervar bloodFx
 playervar mineFx
-playervar hudId
+
+### faction ###
+playervar faction = -1 # -2 is spaghetti for "not done viewing tutorial" (viewing or yet to choose to skip)
+playervar enemies = []

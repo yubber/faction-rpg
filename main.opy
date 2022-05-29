@@ -31,22 +31,13 @@ settings {
     }
 }
 
-#!define ShopCamPos vect(67.5, 8.5, -27.3)
-#!define ShopLookPos vect(69.5, 8.5, -28.5)
-#!define ShopLen len(shopItems)
-#!define BloodRadius 4.7
-#!define QuestPos vect(165.7, 12, 36.2)
-#!define GoldPos vect(123.2, 7, -17.2)
-#!define GoldRadius 5.5
-#!define CryptoPos vect(184.1, 13.8, 40.8)
-#!define CryptoRadius 5.7
-#!define BankPos vect(159.1, 10, -7.7)
+#!include "vars.opy"
+#!include "balance.opy"
+
+# update crypto text too bc it uses localplayer
 #!define MoneyMult (factLevels[eventPlayer.faction] * 0.1 + 1)
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
-
-#!include "vars.opy"
-#!include "balance.opy"
 
 ### inits ###
 def questComplete():
@@ -132,7 +123,7 @@ rule "global init":
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join now for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, (CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney) * MoneyMult), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join now for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, (CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney) * (factLevels[localPlayer.faction] * 0.1 + 1)), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
@@ -259,10 +250,10 @@ rule "global init":
     createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.3, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     # troon
-    for i_init in range(20):
-        createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 41 - i_init*0.125, -26.06), vect(41.68, 41 - i_init*0.25, -28.89),
+    for i_init in range(10):
+        createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 41 - i_init*0.22, -26.06), vect(41.68, 41 - i_init*0.22, -28.89),
             Color.SKY_BLUE if abs(4.5-i_init) >= 3.5 else (
-                Color.ROSE if abs(4.5-i_init) >= 2.5 else Color.WHITE
+                Color.ROSE if abs(4.5-i_init) >= 1.5 else Color.WHITE
             ), EffectReeval.VISIBILITY)
         # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 40.5, -26.06), vect(41.68, 40.5, -28.89), Color.ROSE, EffectReeval.VISIBILITY)
         # createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 40, -26.06), vect(41.68, 40, -28.89), Color.WHITE, EffectReeval.VISIBILITY)
@@ -299,7 +290,7 @@ rule "player init":
                 eventPlayer.startCamera(tutoCams[eventPlayer.option], tutoLooks[eventPlayer.option], 15)
                 wait(0.32)
                 smallMessage(eventPlayer, tutoStrings[eventPlayer.option])
-                wait(5)
+                wait(4)
             eventPlayer.startCamera(moonPos + Vector.UP * 6, moonPos, 15)
             wait(0.32)
             smallMessage(eventPlayer, "you can also battle for possession of the {} moon spirit.".format(iconString(Icon.MOON)))
@@ -326,13 +317,12 @@ rule "player init":
         eventPlayer.stats[STATS.DEFENSE] = -75
         eventPlayer.setDamageDealt(75)
         eventPlayer.setDamageReceived(75)
-        eventPlayer.startHoT(null, 9999, 15)
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
     # eventPlayer.enableGamemodeHud()
     eventPlayer.enableHeroHud()
     # catchup
-    eventPlayer.money = getTotalTimeElapsed() * 90
+    eventPlayer.money = max(500, (getTotalTimeElapsed()-360) * 90)
     # event update
     switch eventType:
         case EVENTS.GRAVITY:
@@ -731,8 +721,8 @@ rule "flight":
 	@Condition eventPlayer.isHoldingButton(Button.JUMP)
 	@Condition eventPlayer.isAlive()
 	do:
-		eventPlayer.applyImpulse(Vector.UP, 5, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
-		wait(0.16)
+		eventPlayer.applyImpulse(Vector.UP, 2, Relativity.TO_WORLD, Impulse.INCORPORATE_CONTRARY_MOTION)
+		wait(0.064)
 	while RULE_CONDITION
 
 rule "rapid fire":
@@ -771,21 +761,21 @@ rule "gen events":
             switch eventType: # events with side effects are updated in player init
                 case EVENTS.BLOOD:
                     eventDetail = random.randint(3, 7)
-                    eventText = "event: blood god grants x{} money!".format(eventDetail)
+                    eventText = "{} event: blood god grants {}x money!".format(iconString(Icon.POISON), eventDetail)
                     bigMessage(getAllPlayers(), eventText)
                     break
                 case EVENTS.KILL:
                     eventDetail = random.randint(3, 5) / 2
-                    eventText = "event: kills grant x{} money!".format(eventDetail)
+                    eventText = "event: {} kills grant {}x money!".format(iconString(Icon.SKULL), eventDetail)
                     break
                 case EVENTS.GRAVITY:
                     eventDetail = random.randint(20, 60)
-                    eventText = "event: gravity is {}%.".format(eventDetail)
+                    eventText = "event: {} gravity is {}%".format(abilityIconString(Hero.ECHO, Button.JUMP), eventDetail)
                     getAllPlayers().setGravity(eventDetail) # also used in player init
                     break
                 case EVENTS.HERO:
                     eventDetail = random.choice(getAllHeroes())
-                    eventText = "event: hero swap {}".format(heroIcon(eventDetail))
+                    eventText = "event: {} hero swap".format(heroIcon(eventDetail))
                     getAllPlayers().startForcingHero(eventDetail)
                     break
             bigMessage(getAllPlayers(), eventText)
@@ -810,7 +800,7 @@ rule "kill handling":
 	if eventPlayer.faction == FACTIONS.RICH:
 		eventPlayer.money *= 1.1
     # money
-    eventPlayer.money += max(350, MoneyMult*2*victim.level) + victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
+    eventPlayer.money += (max(350, MoneyMult*2*victim.level) + victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)) * (eventDetail if eventType == EVENTS.KILL else 1)
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
 
     # quest
@@ -860,6 +850,7 @@ rule "gaia healing":
     smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
     while eventPlayer.isCrouching() and eventPlayer.isAlive():
         heal(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), eventPlayer, 6)
+        heal(eventPlayer, eventPlayer, 2)
         playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.LIME_GREEN, eventPlayer.getPosition(), 3)
         wait(0.1)
 
@@ -985,14 +976,14 @@ rule "debug bot spawn":
 
 /*2do
 - fix tutorial cams
-- events & timer fix
+- balance rapid fire (change to max duration, activate on interact?)
+- fix display for boolean shop items
 - reverse hero swap event
-- implement event effects for bonus type
+- more events (punching bag if slot available? faction point bonus? wallhax? chasseur de prime?)
 - bank & robbing
 - test small lumerico barrier glitch
-- offensive effects (hack at hp threshold)
-- add phase near bank mega health pack barrier
-- rapid fire upgrade
+- offensive effects (hack at hp threshold, caut?)
+- test phase near bank mega health pack barrier
 - earning $/s hud
 - balance catchup
 - compensate for low faction membership in objectives
