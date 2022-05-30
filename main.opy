@@ -40,6 +40,21 @@ settings {
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
 
 ### inits ###
+def bossEventCleanup():
+    # reverts boss effects. uses eventDetail as boss, not eventPlayer. does not reassign boss.
+    removeHealthPool(eventDetail.eventVar)
+    eventDetail.stopForcingOutlineFor(getAllPlayers())
+    eventDetail.eventVar = null
+
+def bossEventSetup():
+    # sets up health pools for the player & updates hud. does not clean old boss' health pool or award money.
+    eventDetail.addHealthPool(Health.ARMOR, eventDetail.getMaxHealth() * 0.25, true, false)
+    eventDetail.eventVar = getLastCreatedHealthPool()
+    heal(eventDetail, null, 250)
+    eventDetail.startForcingOutlineFor(getAllPlayers(), true, Color.ROSE, OutlineVisibility.OCCLUDED)
+    bigMessage(getAllPlayers(), "event: {}{} is now the boss!".format(heroIcon(eventDetail.getCurrentHero()), eventDetail))
+    eventText = "event: boss ({}{}) - kill them to get money & become the next boss!".format(heroIcon(eventDetail.getCurrentHero()), eventDetail)
+
 def questComplete():
     stopChasingVariable(eventPlayer.questProgress)
 	if eventPlayer.faction == FACTIONS.SOMBRUH:
@@ -128,7 +143,7 @@ rule "global init":
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "bank | ${} / {}\n{}".format(factPoints[FACTIONS.RICH], factLvUp[FACTIONS.RICH],
-        "stand here to steal (15% / 5s)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+        "stand here to steal (40% / 3s, 5s before first steal)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
     ### time HUD + shop prompt ###
@@ -148,14 +163,19 @@ rule "global init":
     # hudSubtext(localPlayer if localPlayer.questType != -1 else [], b"{} / {}".format(localPlayer.questProgress, localPlayer.questGoal) if localPlayer.questType in NumQuests else b" {} ".format(localPlayer.questGoal), HudPosition.TOP, 1.1, Color.GRAY if localPlayer.questType == -1 else Color.YELLOW, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     # event
-    hudHeader(localPlayer if localPlayer.faction >= 0 else [], "{} ({}s)".format(eventText, round(eventTime)), HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
+    hudText(localPlayer if localPlayer.faction >= 0 and localPlayer not in shoppers else [], "  {} ({}s)  ".format(eventText, round(eventTime)), "", " \n ", HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
     # dakka hud
-    createProgressBarInWorldText(localPlayer if localPlayer.dakkaTime > 0 else [],
-        100 * localPlayer.dakkaTime / localPlayer.stats[STATS.DAKKA], "rapid fire ({}s left) | [{}] to cancel".format(localPlayer.dakkaTime, buttonString(Button.INTERACT)),
+    hudSubtext(getAllPlayers(), " ", HudPosition.LEFT, 1, Color.GRAY, HudReeval.VISIBILITY)
+    createProgressBarInWorldText(localPlayer if localPlayer.dakkaFx != null else [],
+        100 * localPlayer.dakkaTime / localPlayer.stats[STATS.DAKKA], "rapid fire ({}s left) | [{}] to cancel".format(round(localPlayer.dakkaTime), buttonString(Button.INTERACT)),
         updateEveryTick(
             localPlayer.getEyePosition() + 100 * ( # X_POS * World Vector Of(Right, Local Player, Rotation) +
-            (-0.7 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
-            3 * localPlayer.getFacingDirection())), 2, Clip.NONE, Color.SKY_BLUE, Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
+            (-0.65 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+            3 * localPlayer.getFacingDirection())), 1.2, Clip.NONE, Color.SKY_BLUE, Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
+
+    hudText(localPlayer if localPlayer.stats[STATS.DAKKA] else [], abilityIconString(Hero.PHARAH, Button.ULTIMATE),
+        "rapid fire (lasts {}s, cd 25s)".format(localPlayer.stats[STATS.DAKKA]), "ready" if localPlayer.dakkaTime >= 0 else "cooldown {}s".format(round(abs(localPlayer.dakkaTime))),
+        HudPosition.LEFT, 1.1, Color.AQUA, Color.AQUA, Color.TURQUOISE if localPlayer.dakkaTime >= 0 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -200,8 +220,14 @@ rule "global init":
     # createInWorldText(shoppers, "\n".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
     #     (0.95 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
     #     3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
-    createInWorldText(shoppers, "horizontal movement to scroll\n[{}/{}/{}] to buy 1/20/500 times\nhold [{}] while buying to buy repeatedly".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE), buttonString(Button.CROUCH)), ShopCamPos + 100 * (
-        (1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+    createInWorldText(shoppers, "horizontal movement to scroll", ShopCamPos + 100 * (
+        (1.25 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(shoppers, "[{}/{}/{}] to buy 1/20/500 times".format(buttonString(Button.JUMP), buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), ShopCamPos + 100 * (
+        (1.1 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(shoppers, "hold [{}] while buying to buy repeatedly".format(buttonString(Button.CROUCH)), ShopCamPos + 100 * (
+        (0.95 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     wait()
 	# icon row
@@ -218,13 +244,16 @@ rule "global init":
         (0.45 - 0.200 + 0.05*sin(2*getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.BLUE, SpecVisibility.DEFAULT)
     # shop item
-    createInWorldText(shoppers, "◀ {} {} ({}{}) - ${} ▶".format(shopIcons[localPlayer.option],
-        shopItems[localPlayer.option],
-        abs(localPlayer.stats[localPlayer.option]),
+    createInWorldText(shoppers, "◀ {} {} ▶".format(shopIcons[localPlayer.option],
+        shopItems[localPlayer.option]), ShopCamPos + 100 * (
+        (-0.1 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        3 * directionTowards(ShopCamPos, ShopLookPos)), 4.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(shoppers, b" {}/{}{}| ${} ".format(abs(localPlayer.stats[localPlayer.option]),
+        statCaps[localPlayer.option],
         shopUnits[localPlayer.option],
         shopPrices[localPlayer.option]), ShopCamPos + 100 * (
-        (-0.1 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
-        3 * directionTowards(ShopCamPos, ShopLookPos)), 5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+        (-0.27 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        3 * directionTowards(ShopCamPos, ShopLookPos)), 3, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     # createInWorldText(shoppers, "({} / {})".format(
     #     localPlayer.option + 1, ShopLen), ShopCamPos + 100 * (
     #     (-0.65 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
@@ -330,7 +359,7 @@ rule "player init":
     # eventPlayer.enableGamemodeHud()
     eventPlayer.enableHeroHud()
     # catchup
-    eventPlayer.money = max(500, (getTotalTimeElapsed()-360) * 90)
+    eventPlayer.money = 6969696969 #max(500, (getTotalTimeElapsed()-360) * 90)
     # event update
     switch eventType:
         case EVENTS.GRAVITY:
@@ -417,7 +446,7 @@ rule "shop buy":
         eventPlayer.stats[eventPlayer.option] += eventPlayer.buyqty
         eventPlayer.level += eventPlayer.buyqty
         playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 70)
-        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.ROSE, ShopLookPos, 5)
+        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.VIOLET, ShopLookPos, 5)
 
         wait(0.064)
         if not eventPlayer.isHoldingButton(Button.CROUCH):
@@ -458,6 +487,7 @@ rule "shop leave":
     eventPlayer.setKnockbackDealt(eventPlayer.stats[STATS.KNOCK])
     wait()
     eventPlayer.startScalingSize(1 - (eventPlayer.stats[STATS.SHRINK] / 100), false)
+    # set ammo
     eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
     eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
     wait(0.032)
@@ -559,7 +589,7 @@ rule "moon init & repos":
     # init
     createEffect(getAllPlayers(), Effect.CLOUD, Color.VIOLET, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createEffect(getAllPlayers(), Effect.RING, Color.ROSE, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-    createIcon(getAllPlayers(), moonPos + Vector.UP * (3 + 0.3*sin(getTotalTimeElapsed())),
+    createIcon(localPlayer if not localPlayer in shoppers else [], moonPos + Vector.UP * (3 + 0.3*sin(getTotalTimeElapsed())),
         Icon.MOON, IconReeval.VISIBILITY_POSITION_AND_COLOR, rgb(127 + 30*sin(getTotalTimeElapsed()), 0, 255), false)
     # createInWorldText(getAllPlayers(), "")
     # loop
@@ -699,15 +729,21 @@ rule "swap heroes":
     @Condition eventPlayer.isHoldingButton(Button.CROUCH)
     @Condition eventPlayer.hasStatusEffect(Status.PHASED_OUT)
     @Condition distance(eventPlayer, factSpawns[eventPlayer.faction]) <= 3
+    if eventType == EVENTS.HERO:
+        smallMessage(eventPlayer, "you can't change heroes during this event.")
+        return
     # smallMessage(eventPlayer, "hold crouch to swap heroes...")
     wait(0.5, Wait.ABORT_WHEN_FALSE)
     wait()
+    # reset ammo
+    # eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*100/eventPlayer.stats[STATS.AMMO])
+    # eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*100/eventPlayer.stats[STATS.AMMO])
     eventPlayer.setAllowedHeroes(getAllHeroes().exclude(eventPlayer.getCurrentHero()))
     wait()
     eventPlayer.resetHeroAvailability()
 
 # bank
-rule "rob":
+rule "rob bank":
 	@Event eachPlayer
 	@Condition eventPlayer.faction != FACTIONS.RICH
 	@Condition distance(eventPlayer, BankPos) < 5.5
@@ -718,9 +754,9 @@ rule "rob":
 	wait(2)
 	while (distance(eventPlayer, BankPos) < 5.5) and (factPoints[FACTIONS.RICH] > 0):
 		wait(3)
-			eventPlayer.money += 0.15 * factPoints[FACTIONS.RICH]
-			factPoints[FACTIONS.RICH] *= 0.85
-		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 4)
+			eventPlayer.money += 0.4 * factPoints[FACTIONS.RICH]
+			factPoints[FACTIONS.RICH] *= 0.6
+		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 9)
 
 # shop upgrades
 rule "flight":
@@ -729,36 +765,43 @@ rule "flight":
 	@Condition eventPlayer.isHoldingButton(Button.JUMP)
 	@Condition eventPlayer.isAlive()
 	do:
-		eventPlayer.applyImpulse(Vector.UP, 2, Relativity.TO_WORLD, Impulse.INCORPORATE_CONTRARY_MOTION)
+		eventPlayer.applyImpulse(Vector.UP, 5, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
 		wait(0.064)
 	while RULE_CONDITION
 
-rule "rapid fire":
+rule "rapid fire input":
 	@Event eachPlayer
 	@Condition eventPlayer.isAlive()
 	@Condition eventPlayer.stats[STATS.DAKKA]
-    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
+    @Condition eventPlayer.isHoldingButton(Button.INTERACT) and eventPlayer.isHoldingButton(Button.MELEE)
     if eventPlayer.dakkaTime < 0: # cooldown
-        smallMessage(eventPlayer, "rapid fire not ready (wait {}s)".format(abs(eventPlayer.dakkaTime)))
-    elif eventPlayer.dakkaTime > 0: # cancel
-        wait(0.08, Wait.ABORT_WHEN_FALSE)
-        smallMessage(eventPlayer, "[{}] hold to cancel rapid fire...".format(buttonString(Button.INTERACT)))
-        wait(0.8, Wait.ABORT_WHEN_FALSE)
-        eventPlayer.dakkaTime = -20
-    else: # activate
+        smallMessage(eventPlayer, "rapid fire not ready (wait {}s)".format(round(abs(eventPlayer.dakkaTime))))
+    elif eventPlayer.dakkaTime == 0: # activate
         eventPlayer.dakkaTime = eventPlayer.stats[STATS.DAKKA]
         chase(eventPlayer.dakkaTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
         playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.SKY_BLUE, eventPlayer.getEyePosition(), 1.5)
         playEffect(getAllPlayers(), DynamicEffect.BUFF_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
         createEffect(getAllPlayers(), Effect.SPARKLES, Color.SKY_BLUE, eventPlayer, 1.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-        while eventPlayer.dakkaTime > 0:
-            eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
-            wait(0.16)
-        eventPlayer.dakkaTime = -20
+        eventPlayer.dakkaFx = getLastCreatedEntity()
+        wait(eventPlayer.dakkaTime) # can't abort or won't set cd
+        eventPlayer.dakkaTime = -25
+
+rule "dakkadakkadakka":
+    @Event eachPlayer
+    @Condition eventPlayer.dakkaTime > 0
+    do:
+        eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
+        wait(0.112)
+    while RULE_CONDITION
 
 rule "rapid fire end":
     @Event eachPlayer
-    @Condition eventPlayer.dakkaTime < 0
+    @Condition (eventPlayer.dakkaTime < 0) or (eventPlayer.isHoldingButton(Button.INTERACT) and eventPlayer.dakkaTime > 0)
+    if eventPlayer.dakkaTime > 0:
+        wait(0.56, Wait.ABORT_WHEN_FALSE)
+        # smallMessage(eventPlayer, "[{}] hold to cancel rapid fire...".format(buttonString(Button.INTERACT)))
+        wait(0.56, Wait.ABORT_WHEN_FALSE)
+        eventPlayer.dakkaTime = -25
     destroyEffect(eventPlayer.dakkaFx)
     playEffect(getAllPlayers(), DynamicEffect.BAD_EXPLOSION, Color.BLUE, eventPlayer, 1.5)
     playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
@@ -782,8 +825,8 @@ rule "gen events":
     eventText = "next event coming soon"
     wait(1.6)
     eventTime = 120
-    wait(eventTime)
     chase(eventTime, -5, rate=1, ChaseReeval.DESTINATION_AND_RATE)
+    wait(eventTime)
     # bigMessage(getAllPlayers(), getMatchTime())
     while true:
         if eventType == -1:
@@ -792,7 +835,6 @@ rule "gen events":
                 case EVENTS.BLOOD:
                     eventDetail = random.randint(3, 7)
                     eventText = "{} event: blood god grants {}x money!".format(iconString(Icon.POISON), eventDetail)
-                    bigMessage(getAllPlayers(), eventText)
                     break
                 case EVENTS.KILL:
                     eventDetail = random.randint(3, 5) / 2
@@ -803,7 +845,20 @@ rule "gen events":
                     eventText = "event: {} gravity is {}%".format(abilityIconString(Hero.ECHO, Button.JUMP), eventDetail)
                     getAllPlayers().setGravity(eventDetail) # also used in player init
                     break
+                case EVENTS.BOSS:
+                    eventDetail = sorted(getAllPlayers(), lambda x: -x.level)[0] # target
+                    bossEventSetup()
+                    break
                 case EVENTS.HERO:
+                    for eventDetail in range(getNumberOfPlayers(Team.ALL)):
+                        # reset ammo
+                        eventDetail.setMaxAmmo(0, eventDetail.getMaxAmmo(0)*100/eventDetail.stats[STATS.AMMO])
+                        eventDetail.setMaxAmmo(1, eventDetail.getMaxAmmo(1)*100/eventDetail.stats[STATS.AMMO])
+                        getAllPlayers()[eventDetail].eventVar = getAllPlayers()[eventDetail].getCurrentHero()
+                        # set ammo
+                        getAllPlayers()[eventDetail].setMaxAmmo(0, getAllPlayers()[eventDetail].getMaxAmmo(0)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
+                        getAllPlayers()[eventDetail].setMaxAmmo(1, getAllPlayers()[eventDetail].getMaxAmmo(1)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
+                        wait()
                     eventDetail = random.choice(getAllHeroes())
                     eventText = "event: {} hero swap".format(heroIcon(eventDetail))
                     getAllPlayers().startForcingHero(eventDetail)
@@ -813,29 +868,72 @@ rule "gen events":
             wait()
             wait(eventTime)
         else:
+            switch eventType:
+                case EVENTS.HERO:
+                    for eventType in range(getNumberOfPlayers(Team.ALL)):
+                        getAllPlayers()[eventType].startForcingHero(getAllPlayers()[eventType].eventVar)
+                        if getAllPlayers()[eventType].getCurrentHero() != eventDetail:
+                            getAllPlayers()[eventType].setMaxAmmo(0, getAllPlayers()[eventType].getMaxAmmo(0)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                            getAllPlayers()[eventType].setMaxAmmo(1, getAllPlayers()[eventType].getMaxAmmo(1)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                        wait()
+                    break
+                case EVENTS.BOSS:
+                    bossEventCleanup()
+                    break
+
             eventType = -1
             eventText = "next event coming soon"
             getAllPlayers().setGravity(100)
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            eventTime = random.randint(240, 360)
+            eventTime = random.randint(180, 270)
             # setMatchTime(30)
             wait()
             wait(eventTime)
             # bigMessage(getAllPlayers(), getMatchTime())
 # misc
-rule "kill handling":
+rule "elim handling":
+    @Event playerEarnedElimination
+    @Condition eventPlayer != victim
+    @Condition victim.blower != eventPlayer
+    wait(0.08, Wait.ABORT_WHEN_FALSE)
+    eventPlayer.money += max(300, 0.5*victim.level) * MoneyMult
+    victim.blower = null
+
+rule "final blow handling":
     @Event playerDealtFinalBlow
+    @Condition eventPlayer != victim
+    victim.blower = eventPlayer
 	# rich money bonus
 	if eventPlayer.faction == FACTIONS.RICH:
 		eventPlayer.money *= 1.1
     # money
-    eventPlayer.money += (max(350, MoneyMult*2*victim.level) + victim.money * stealPortion * (2 if eventPlayer.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)) * (eventDetail if eventType == EVENTS.KILL else 1)
+    eventPlayer.money += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
+        * (2 if eventPlayer.faction == FACTIONS.RICH else 1)) * (eventDetail if eventType == EVENTS.KILL else 1) # bonuses to both steal portion & base money increase
+
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
 
     # quest
     if eventPlayer.questGoal == victim and eventPlayer.questType == QUEST_TYPE.HITMAN:
         questComplete()
+
+    # boss event
+    if eventType == EVENTS.BOSS:
+        if eventPlayer == eventDetail: # boss got kill
+            eventPlayer.money += 3500 * MoneyMult
+        elif victim == eventDetail: # boss killed
+            bossEventCleanup()
+            wait()
+            eventPlayer.money += eventDetail.level * 3 * MoneyMult
+            eventDetail.money -= eventDetail.level * 0.7
+            smallMessage(eventDetail, "you are no longer the boss. lost ${}".format(eventDetail.level * 0.7))
+            smallMessage(eventPlayer, "you are the new boss! earned ${}.".format(eventDetail.level * 4))
+            wait()
+            eventDetail = eventPlayer
+            wait()
+            bossEventSetup()
+
+    # robber or miner
 
     ### enemy ###
     # killed enemy
@@ -858,10 +956,17 @@ rule "respawn":
     @Condition eventPlayer.faction != -1
     # @Condition eventPlayer.isInAlternateForm()
     # @Condition eventPlayer.isOnGround() # cheesy detect spawned vs demeched
+    wait()
     eventPlayer.teleport(factSpawns[eventPlayer.faction])
+    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
+    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
+    wait(0.032)
 
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
         eventPlayer.setUltCharge(100)
+
+    wait(0.16)
+    eventPlayer.forceButtonPress(Button.RELOAD)
 
 ### faction specific behaviors ###
 rule "cult lifesteal & blood":
@@ -909,6 +1014,7 @@ rule "crypto melee":
 ### misc ###
 rule "heal when stat > 10000":
     @Event playerReceivedHealing
+    @Condition eventHealing > 0
     @Condition eventPlayer.stats[STATS.HEALING] > 1000
     # heal(eventPlayer, healer, eventHealing * (10000 - eventPlayer.stats[STATS.HEALING]) / eventPlayer.stats[STATS.HEALING])
     heal(eventPlayer, null, eventHealing * (eventPlayer.stats[STATS.HEALING] - 1000)/1000 )
@@ -940,7 +1046,10 @@ rule "small door from bank barrier":
 
 rule "player leave cleanup":
     @Event playerLeft
+    # clean huds, fx, etc
     shoppers.remove(eventPlayer)
+    factMembers[eventPlayer.faction]--
+
 	destroyEffect(eventPlayer.bloodFx)
 	stopDoT(eventPlayer.bloodDoT)
     destroyInWorldText(eventPlayer.hudId)
@@ -948,6 +1057,13 @@ rule "player leave cleanup":
         destroyEffect(eventPlayer.mineFx)
         minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     destroyEffect(eventPlayer.dakkaFx)
+    # events
+    if eventType == EVENTS.BOSS and eventPlayer == eventDetail: # if event player is the boss
+        bossEventCleanup()
+        wait()
+        eventDetail = sorted(getAllPlayers(), lambda x: -x.level)[0]
+        wait()
+        bossEventSetup()
     # would add quest refresh for people with them as their mark but sounds expensive
 
 rule "skip hero select phase, alter default gamemode conditions":
@@ -997,7 +1113,7 @@ rule "disable anti crash":
 
 rule "debug bot spawn":
     @Condition "{}".format(hostPlayer) == "OMGIDIED"
-    @Condition hostPlayer.isHoldingButton(Button.MELEE) and hostPlayer.isHoldingButton(Button.INTERACT)
+    @Condition hostPlayer.isHoldingButton(Button.MELEE) and hostPlayer.isHoldingButton(Button.INTERACT) and hostPlayer.isJumping()
     createDummy(random.choice(getAllHeroes()), Team.ALL, -1, hostPlayer, Vector.UP)
     wait(0.080)
     getLastCreatedEntity().clearStatusEffect(Status.PHASED_OUT)
@@ -1005,19 +1121,25 @@ rule "debug bot spawn":
     getLastCreatedEntity().startForcingButton(Button.CROUCH)
     getLastCreatedEntity().startForcingButton(Button.PRIMARY_FIRE)
 
+rule "yeet debug bot":
+    @Event playerTookDamage
+    @Condition eventAbility == Button.MELEE
+    @Condition attacker == hostPlayer
+    destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
 - fix tutorial cams
-- test dakka
-- dakka hud showing cd?
-- fix display for boolean shop items
-- reverse hero swap event
-- more events (punching bag if slot available? faction point bonus? wallhax? chasseur de prime?)
+- test boss event
+- add reward for killing robbers/miners
+- more events (punching bag if slot available? faction point bonus? wallhax?)
 - bank & robbing
-- test small lumerico barrier glitch
-- offensive effects (hack at hp threshold, caut?)
-- test phase near bank mega health pack barrier
+- offensive effects
+    - in ana's drug black market, hide near shop cam behind small wall
+    - rotate items
+        - hack at hp threshold, caut, shrink, barrier scale, kb dealt
+- test sombra invis hud
 - earning $/s hud
 - balance catchup
+- catchup faction points for empty factions (do on player joining faction)
 - compensate for low faction membership in objectives
 
 faction select

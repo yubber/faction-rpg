@@ -5,15 +5,15 @@ globalvar shopPrices = [
     40, # ammo
     55, # hp
     45, # heal
-    35, # move
+    50, # move
     15, # projectile
-    45, # kb dealt
+    # 45, # kb dealt
     80, # min ult
     100, # dmg received
-    4000, # shrink
-    50,  # faction
+    # 105000, # shrink
+    55,  # faction
     1069420, # flight
-    600100, # rapid
+    850420, # rapid
 ]
 globalvar statCaps = [
     99999, # dmg
@@ -22,13 +22,13 @@ globalvar statCaps = [
     50000, # heal
     500, # move
     500, # projectile
-    500, # kb
+    # 500, # kb
     85, # min ult
     -40, # dmg received
-    50, # shrink
+    # 40, # shrink
     50000, # faction bonus
     1, # flight
-    10 # rapid
+    6 # rapid
 ]
 #!define BaseFactionMembers 4
 #!define CryptoBaseMoney 35

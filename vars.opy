@@ -23,10 +23,10 @@ enum STATS:
     HEALING,
     MOVESPEED,
     PROJECTILE,
-    KNOCK,
+    # KNOCK,
     ULT,
     DEFENSE,
-    SHRINK,
+    # SHRINK,
     OBJECTIVE,
     FLIGHT,
     DAKKA
@@ -42,6 +42,7 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     GRAVITY,
     KILL,
     BLOOD,
+    BOSS,
     HERO # must be last
 
 ### tutorial ###
@@ -70,7 +71,7 @@ globalvar factGoalStrings = [
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
-    "increase your held money by 10% when getting eliminations and double money earned from kills,\nbut enemies steal 50% more money from killing you if you have more money than them.",
+    "when you get a killing blow your held money increases by 10% and you earn double the money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
 globalvar factMembers = [0, 0, 0, 0]
@@ -86,10 +87,10 @@ globalvar shopIcons = [
     abilityIconString(Hero.BAPTISTE, Button.ABILITY_1),
     abilityIconString(Hero.SOLDIER, Button.ABILITY_1),
     abilityIconString(Hero.HANZO, Button.ABILITY_2),
-    abilityIconString(Hero.PHARAH, Button.ABILITY_2),
+    # abilityIconString(Hero.PHARAH, Button.ABILITY_2),
     abilityIconString(Hero.ANA, Button.ULTIMATE),
     abilityIconString(Hero.BRIGITTE, Button.SECONDARY_FIRE),
-    abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE),
+    # abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE),
     abilityIconString(Hero.BRIGITTE, Button.ULTIMATE),
     abilityIconString(Hero.MERCY, Button.ULTIMATE),
     abilityIconString(Hero.PHARAH, Button.ULTIMATE)
@@ -101,13 +102,13 @@ globalvar shopItems = [
     "healing received",
     "movement speed",
     "projectile speed & lightness",
-    "knockback dealt",
+    # "knockback dealt",
     "minimum ult charge",
     "damage received",
-    "player shrinking",
+    # "player shrinking",
     "faction goal progress",
     "flight (hold {})".format(Button.JUMP),
-    "rapid fire ({} to activate)".format(Button.INTERACT)
+    "rapid fire ({} + {})".format(Button.INTERACT, Button.MELEE)
 ]
 globalvar shoppers = []
 globalvar baseStats = [
@@ -117,10 +118,10 @@ globalvar baseStats = [
     100, # heal
     100, #movespeed
     100, #projectile
-    100, # kb
+    # 100, # kb
     0, # min ult
     -100, #dr
-    0, #shrink
+    # 0, #shrink
     100, #objective
     false, # flight (false + 1 = 1)
     0 # rapid
@@ -132,13 +133,13 @@ globalvar shopUnits = [
     "%", # heal
     "%", #movespeed
     "%", #projectile
-    "%", # kb
+    # "%", # kb
     "%", # min ult
     "%", #dr
-    "%", #shrink
+    # "%", #shrink
     "%", #objective
     "", # flight
-    "s", # rapid
+    "sec", # rapid
 ]
 # globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
 #!define ShopLen len(shopItems)
@@ -213,6 +214,8 @@ playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
 playervar dakkaTime
 playervar dakkaFx # sparkle effect
+playervar eventVar # use for any event
+playervar blower # player who dealt final blow, used to separate final blow & elim events
 
 ### quests ###
 playervar questType = -1
