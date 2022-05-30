@@ -149,6 +149,13 @@ rule "global init":
 
     # event
     hudHeader(localPlayer if localPlayer.faction >= 0 else [], "{} ({}s)".format(eventText, round(eventTime)), HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
+    # dakka hud
+    createProgressBarInWorldText(localPlayer if localPlayer.dakkaTime > 0 else [],
+        100 * localPlayer.dakkaTime / localPlayer.stats[STATS.DAKKA], "rapid fire ({}s left) | [{}] to cancel".format(localPlayer.dakkaTime, buttonString(Button.INTERACT)),
+        updateEveryTick(
+            localPlayer.getEyePosition() + 100 * ( # X_POS * World Vector Of(Right, Local Player, Rotation) +
+            (-0.7 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+            3 * localPlayer.getFacingDirection())), 2, Clip.NONE, Color.SKY_BLUE, Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -211,9 +218,10 @@ rule "global init":
         (0.45 - 0.200 + 0.05*sin(2*getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.BLUE, SpecVisibility.DEFAULT)
     # shop item
-    createInWorldText(shoppers, "◀ {} {} ({}%) - ${} ▶".format(shopIcons[localPlayer.option],
+    createInWorldText(shoppers, "◀ {} {} ({}{}) - ${} ▶".format(shopIcons[localPlayer.option],
         shopItems[localPlayer.option],
         abs(localPlayer.stats[localPlayer.option]),
+        shopUnits[localPlayer.option],
         shopPrices[localPlayer.option]), ShopCamPos + 100 * (
         (-0.1 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
@@ -729,10 +737,32 @@ rule "rapid fire":
 	@Event eachPlayer
 	@Condition eventPlayer.isAlive()
 	@Condition eventPlayer.stats[STATS.DAKKA]
-	do:
-		eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
-		wait(0.16)
-	while RULE_CONDITION
+    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
+    if eventPlayer.dakkaTime < 0: # cooldown
+        smallMessage(eventPlayer, "rapid fire not ready (wait {}s)".format(abs(eventPlayer.dakkaTime)))
+    elif eventPlayer.dakkaTime > 0: # cancel
+        wait(0.08, Wait.ABORT_WHEN_FALSE)
+        smallMessage(eventPlayer, "[{}] hold to cancel rapid fire...".format(buttonString(Button.INTERACT)))
+        wait(0.8, Wait.ABORT_WHEN_FALSE)
+        eventPlayer.dakkaTime = -20
+    else: # activate
+        eventPlayer.dakkaTime = eventPlayer.stats[STATS.DAKKA]
+        chase(eventPlayer.dakkaTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
+        playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.SKY_BLUE, eventPlayer.getEyePosition(), 1.5)
+        playEffect(getAllPlayers(), DynamicEffect.BUFF_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
+        createEffect(getAllPlayers(), Effect.SPARKLES, Color.SKY_BLUE, eventPlayer, 1.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+        while eventPlayer.dakkaTime > 0:
+            eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
+            wait(0.16)
+        eventPlayer.dakkaTime = -20
+
+rule "rapid fire end":
+    @Event eachPlayer
+    @Condition eventPlayer.dakkaTime < 0
+    destroyEffect(eventPlayer.dakkaFx)
+    playEffect(getAllPlayers(), DynamicEffect.BAD_EXPLOSION, Color.BLUE, eventPlayer, 1.5)
+    playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
+    eventPlayer.dakkaFx = 0
 
 rule "min ult":
     @Event eachPlayer
@@ -917,6 +947,7 @@ rule "player leave cleanup":
     if eventPlayer.mineFx != null:
         destroyEffect(eventPlayer.mineFx)
         minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
+    destroyEffect(eventPlayer.dakkaFx)
     # would add quest refresh for people with them as their mark but sounds expensive
 
 rule "skip hero select phase, alter default gamemode conditions":
@@ -976,7 +1007,8 @@ rule "debug bot spawn":
 
 /*2do
 - fix tutorial cams
-- balance rapid fire (change to max duration, activate on interact?)
+- test dakka
+- dakka hud showing cd?
 - fix display for boolean shop items
 - reverse hero swap event
 - more events (punching bag if slot available? faction point bonus? wallhax? chasseur de prime?)

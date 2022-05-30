@@ -13,7 +13,7 @@ globalvar shopPrices = [
     4000, # shrink
     50,  # faction
     1069420, # flight
-    3069420, # rapid
+    600100, # rapid
 ]
 globalvar statCaps = [
     99999, # dmg
@@ -28,7 +28,7 @@ globalvar statCaps = [
     50, # shrink
     50000, # faction bonus
     1, # flight
-    1 # rapid
+    10 # rapid
 ]
 #!define BaseFactionMembers 4
 #!define CryptoBaseMoney 35

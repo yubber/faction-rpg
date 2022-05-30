@@ -106,8 +106,8 @@ globalvar shopItems = [
     "damage received",
     "player shrinking",
     "faction goal progress",
-    "flight (hold space)",
-    "rapid fire"
+    "flight (hold {})".format(Button.JUMP),
+    "rapid fire ({} to activate)".format(Button.INTERACT)
 ]
 globalvar shoppers = []
 globalvar baseStats = [
@@ -122,8 +122,23 @@ globalvar baseStats = [
     -100, #dr
     0, #shrink
     100, #objective
-    0, # flight
-    0, # rapid
+    false, # flight (false + 1 = 1)
+    0 # rapid
+]
+globalvar shopUnits = [
+    "%", # dmg
+    "%", # ammo
+    "%", # hp
+    "%", # heal
+    "%", #movespeed
+    "%", #projectile
+    "%", # kb
+    "%", # min ult
+    "%", #dr
+    "%", #shrink
+    "%", #objective
+    "", # flight
+    "s", # rapid
 ]
 # globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
 #!define ShopLen len(shopItems)
@@ -196,6 +211,8 @@ playervar stats = baseStats
 playervar hudId
 playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
+playervar dakkaTime
+playervar dakkaFx # sparkle effect
 
 ### quests ###
 playervar questType = -1
