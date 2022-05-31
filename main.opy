@@ -87,7 +87,6 @@ def shut():
     eventPlayer.setGravity(0)
     eventPlayer.setStatusEffect(null, Status.PHASED_OUT, 9999)
     eventPlayer.setStatusEffect(null, Status.HACKED, 9999)
-    eventPlayer.startScalingSize(0.001, false)
 
 def resume():
     eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED] + eventPlayer.marketStats[MARKET.MOVESPEED])
@@ -104,7 +103,6 @@ def resume():
     eventPlayer.allowButton(Button.ULTIMATE)
     eventPlayer.allowButton(Button.JUMP)
     eventPlayer.allowButton(Button.RELOAD)
-    eventPlayer.stopScalingSize()
     eventPlayer.respawn()
     wait(0.3)
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
@@ -171,7 +169,7 @@ rule "global init":
         100 * localPlayer.dakkaTime / localPlayer.stats[STATS.DAKKA], "rapid fire ({}s left) | [{}] to cancel".format(round(localPlayer.dakkaTime), buttonString(Button.INTERACT)),
         updateEveryTick(
             localPlayer.getEyePosition() + 100 * ( # X_POS * World Vector Of(Right, Local Player, Rotation) +
-            (-0.65 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
+            (-0.6 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
             3 * localPlayer.getFacingDirection())), 1.2, Clip.NONE, Color.SKY_BLUE, Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
 
     hudText(localPlayer if localPlayer.stats[STATS.DAKKA] else [], abilityIconString(Hero.PHARAH, Button.ULTIMATE),
@@ -476,7 +474,6 @@ rule "shop leave":
     @Condition eventPlayer in shoppers
     @Condition eventPlayer.isHoldingButton(Button.INTERACT)
     wait(1, Wait.ABORT_WHEN_FALSE)
-    eventPlayer.stopScalingSize()
     eventPlayer.clearStatusEffect(Status.PHASED_OUT)
     wait(0.032) # update stats
     # eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED])
@@ -845,8 +842,8 @@ rule "black market init & rotate":
         128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),
         128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240)
     ), SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(), marketDescs[marketNo], vect(81.42, 8.5, -15.47), 1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(),"${}\nlevel {} / {}\nnext deal in {}s".format(marketPrices[marketNo], abs(localPlayer.marketStats[marketNo]), abs(marketStatCaps[marketNo]), floor(marketTime)), vect(81.42, 8.1, -15.47), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
+    createInWorldText(getAllPlayers(), marketDescs[marketNo], vect(81.42, 8.7, -15.47), 1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
+    createInWorldText(getAllPlayers(),"${}\nlevel {} / {}\nnext deal in {}s".format(marketPrices[marketNo], localPlayer.marketStats[marketNo], marketStatCaps[marketNo], floor(marketTime)), vect(81.42, 8.1, -15.47), 1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
     createInWorldText(getAllPlayers(), "[{}] to buy\n[{}] to downgrade (no refunds)\n[{}] while buying or downgrading\nto do it quickly".format(buttonString(Button.INTERACT), buttonString(Button.CROUCH), buttonString(Button.JUMP)),
         vect(81.42, 7, -15.47), 1, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
@@ -859,7 +856,7 @@ rule "black market init & rotate":
 rule "black market buy":
     @Event eachPlayer
     @Condition eventPlayer.isHoldingButton(Button.INTERACT)
-    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 1
+    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 3
     @Condition eventPlayer.isInViewAngle(vect(81.42, 8.5, -15.47), 100)
     do:
 		# message if can't buy 1
@@ -876,7 +873,7 @@ rule "black market buy":
         # buy
         eventPlayer.money -= marketPrices[marketNo]
         eventPlayer.marketStats[marketNo] ++
-        eventPlayer.level += 1000
+        eventPlayer.level += 300
         playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 70)
         playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.VIOLET, eventPlayer, 5)
         wait(0.096)
@@ -884,24 +881,24 @@ rule "black market buy":
             wait(0.16)
     while RULE_CONDITION
 
-rule "black market refund":
+rule "black market return":
     @Event eachPlayer
     @Condition eventPlayer.isHoldingButton(Button.CROUCH)
-    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 1
+    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 3
     @Condition eventPlayer.isInViewAngle(vect(81.42, 8.5, -15.47), 100)
     do:
         wait(0.4, Wait.ABORT_WHEN_FALSE)
-        if eventPlayer.marketStats[marketNo] <= marketStatCaps[marketNo]:
+        if eventPlayer.marketStats[marketNo] == baseMarketStats[marketNo]:
             playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
             smallMessage(eventPlayer, "{} you don't have any more candy to return.".format(heroIcon(Hero.ANA)))
             return
 
         # buy
-        eventPlayer.marketStats[marketNo] ++
-        eventPlayer.level -= 1000
-        wait(0.2)
-        if not eventPlayer.isHoldingButton(Button.CROUCH):
-            wait(0.24)
+        eventPlayer.marketStats[marketNo]--
+        eventPlayer.level -= 300
+        wait(0.112)
+        if not eventPlayer.isHoldingButton(Button.JUMP):
+            wait(0.16)
     while RULE_CONDITION
 
 rule "black market leave, stat update":
@@ -1225,14 +1222,10 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
-- make sure i didn't break shop buy loops
 - add reward for killing robbers/miners
+- test offensive effects
 - more events (punching bag if slot available? faction point bonus? wallhax?)
-- bank & robbing
-- offensive effects
-    - in ana's drug black market, hide near shop cam behind small wall
-    - rotate items
-        - hack at hp threshold, caut, shrink, barrier scale, kb dealt
+- bank & robbing balance
 - test sombra invis hud
 - earning $/s hud
 - balance catchup

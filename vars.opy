@@ -207,7 +207,7 @@ globalvar baseMarketStats = [
     0, # freeze
     100, # barrier
     0, # kb
-    -100, # steadfast
+    0, # steadfast
     0 # move
 ]
 globalvar marketQuips = [

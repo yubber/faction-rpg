@@ -16,10 +16,10 @@ globalvar shopPrices = [
     850420, # rapid
 ]
 globalvar statCaps = [
-    99999, # dmg
+    100000, # dmg
     1000, # ammo
     10000, # hp
-    50000, # heal
+    10000, # heal
     175, # move
     500, # projectile
     # 500, # kb
