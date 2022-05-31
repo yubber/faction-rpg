@@ -831,9 +831,9 @@ rule "apply hack & caut var":
 rule "apply caut":
     @Event eachPlayer
     @Condition eventPlayer.cautTime > 0
-    eventPlayer.setHealingReceived(0.5 * eventPlayer.stats(STATS.HEALING))
+    eventPlayer.setHealingReceived(0.5 * eventPlayer.stats[STATS.HEALING])
     waitUntil(eventPlayer.cautTime <= 0, 3.5)
-    eventPlayer.setHealingReceived(eventPlayer.stats(STATS.HEALING))
+    eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING])
 
 # black market
 rule "black market init & rotate":
