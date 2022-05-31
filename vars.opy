@@ -45,9 +45,11 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     BOSS,
     HERO # must be last
 
+# market enum below
+
 ### tutorial ###
-globalvar tutoCams = [vect(179.6, 33.6, 65.3), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8)]
-globalvar tutoLooks = [vect(166.5, 10.9, 32.3), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1)]
+globalvar tutoCams = [vect(92.96, 76.23, -66.61), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8), vect(127.41, 39.38, -35.03)]
+globalvar tutoLooks = [vect(87.21, 20.45, 16.63), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1), vect(107.7, 11, 3.4)]
 globalvar tutoStrings = [
     "welcome to the 131269th rpg gamemode in overwatch workshop.",
     "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
@@ -55,7 +57,8 @@ globalvar tutoStrings = [
     "you can also accelerate global warming for a quick buck. but you'll have to learn to play nice.",
     "getting quests from sombra also gives you money. this scales with your level.",
     "increase your income by making progress for your faction.",
-    "hold crouch + interact to enter the shop and upgrade your stats."
+    "hold crouch + interact to enter the shop and upgrade your stats.",
+    "there's also another shop you can visit for some different perks..."
 ]
 
 ### factions ###
@@ -69,7 +72,7 @@ globalvar factGoalStrings = [
     "advance sombra's nefarious agenda."
 ]
 globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s. faction earnings bonus is doubled for this amount.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nhealing faction mates only grants half the money & faction points.",
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s (faction earnings bonus is doubled for this amount).\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
     "when you get a killing blow your held money increases by 10% and you earn double the money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
@@ -145,6 +148,82 @@ globalvar shopUnits = [
 #!define ShopLen len(shopItems)
 # shop prices & stat caps in balance.opy
 
+### black market ###
+enum MARKET:
+    CAUT,
+    SHRINK,
+    HACK,
+    ICE,
+    BARRIER,
+    KNOCK,
+    STEADFAST,
+    MOVESPEED
+
+globalvar marketNo
+globalvar marketItems = [
+    "{} caut-bury creme eggs".format(abilityIconString(Hero.ANA, Button.ABILITY_2)), # reduce heal by up to 50% on hit, upgrade duration to 3s
+    "{} littles".format(abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE)), # shrinking up to 0.6x size
+    "{} hackshey's kisses".format(abilityIconString(Hero.SOMBRA, Button.ULTIMATE)), # hack when you bring target below 50% hp
+    "{} ice scream".format(abilityIconString(Hero.MEI, Button.ABILITY_1)), # freeze nearby enemies when you get killing blow
+    "{} barriero rocher".format(abilityIconString(Hero.SYMMETRA, Button.ULTIMATE)), # barrier
+    "{} kick kat".format(abilityIconString(Hero.DOOMFIST, Button.SECONDARY_FIRE)), # kb dealt
+    "{} knockstoppers".format(abilityIconString(Hero.ORISA, Button.ABILITY_1)), # kb received
+    "{} fruit rollouts".format(abilityIconString(Hero.SOLDIER, Button.ABILITY_1)) # extra speed
+]
+globalvar marketDescs = [
+    "hitting an enemy halves their healing received.\nlevel of this item is effect duration (seconds).\neffect doesn't stack but duration refreshes.",
+    "shrink yourself.\neach level reduces your size by 1%.",
+    "hack enemies when you drop their health below half.\nlevel of this item is effect duration (seconds).",
+    "freeze nearby enemies when you deal a killing blow.\nlevel of this item is effect duration (seconds).",
+    "make your shields & walls bigger.\neach level increases size by 1%.",
+    "take better control of your personal space.\neach level increases knockback dealt by 1%.",
+    "become resistant to knockbacks.\neach level decreases knockback received by 1%.",
+    "go even faster.\neach level adds 1% to your current movement speed."
+]
+globalvar marketPrices = [
+    45000, # caut
+    105000, # shrink
+    80000, # hack
+    9500, # ice
+    3500, # barrier
+    650, # kb
+    800, # steadfast
+    80000 # move
+]
+globalvar marketStatCaps = [
+    3, # caut
+    40, # shrink
+    4, # hack
+    3, # freeze
+    1000, # barrier
+    500, # kb
+    0, # steadfast
+    200 # move
+]
+globalvar baseMarketStats = [
+    0, # caut
+    0, # shrink
+    0, # hack
+    0, # freeze
+    100, # barrier
+    0, # kb
+    -100, # steadfast
+    0 # move
+]
+globalvar marketQuips = [
+    "pleasure doing business with you.",
+    "remember, you are what you eat!",
+    "don't worry, i won't tell your mom.",
+    "please don't tell mommy i sold you these.",
+    "you're supposed to eat these by the way. one of my customers ground them up and snorted them...",
+    "you better not throw the wrapper on the floor.",
+    "come back soon!",
+    "not many people stop by nowadays. must be those darn razor blades...",
+    "you should probably book a dentist appointment soon.",
+    "don't eat it too quickly. why? uh... it's not because there could be razor blades or anything!"
+]
+globalvar marketTime
+
 globalvar i_init
 globalvar stealPortion
 
@@ -208,14 +287,19 @@ globalvar antiCrashActivated
 ### personal ###
 playervar level = 1
 playervar money
-playervar stats = baseStats
-playervar hudId
+playervar stats = baseStats # only for stuff in the normal shop
+playervar marketStats = baseMarketStats
 playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
+playervar hudId
+# dakka
 playervar dakkaTime
 playervar dakkaFx # sparkle effect
+# event
 playervar eventVar # use for any event
+# misc
 playervar blower # player who dealt final blow, used to separate final blow & elim events
+playervar cautTime
 
 ### quests ###
 playervar questType = -1
