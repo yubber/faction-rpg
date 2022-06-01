@@ -58,7 +58,7 @@ globalvar tutoStrings = [
     "getting quests from sombra also gives you money. this scales with your level.",
     "increase your income by making progress for your faction.",
     "hold crouch + interact to enter the shop and upgrade your stats.",
-    "there's also another shop you can visit for some different perks..."
+    "there's also another secret shop you can visit for some different perks..."
 ]
 
 ### factions ###
@@ -66,20 +66,20 @@ globalvar factNames = ["the children of gaia", "the cult of the blood god", "the
 globalvar factCams = [vect(106.2, 17, 4.7), vect(89.6, 13.7, 32.8), vect(140.7, 12.5, 6.8), vect(200.7, 18.9, 70.4)]
 globalvar factSpawns = [vect(98.38, 14, 14.15), vect(66, 15.4, 14.5), vect(144.65, 11, -8.53), vect(184.13, 19, 73.26)]
 globalvar factGoalStrings = [
-    "heal the wounded and avenge your faction members.",
+    "kill blizzcoin miners, avenge your faction members and heal the wounded.",
     "blood for the blood god.",
     "hoard money in the bank and defend it from robbers.",
     "advance sombra's nefarious agenda."
-]
-globalvar factDescs = [ # default initial stat overrides also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s (faction earnings bonus is doubled for this amount).\nyou deal 75% more damage to faction enemies and blizzcoin miners.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
+] # USED FOR TROON CHECK
+globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s (faction earnings bonus is doubled for this amount).\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
     "when you get a killing blow your held money increases by 10% and you earn double the money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
 globalvar factMembers = [0, 0, 0, 0]
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
-globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels.
+globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels. USED FOR TROON CHECK
 globalvar factLvUp = [5000, 5000, 5000, 5000]
 
 ### shop ###
@@ -161,8 +161,8 @@ enum MARKET:
 
 globalvar marketNo
 globalvar marketItems = [
-    "{} caut-bury creme eggs".format(abilityIconString(Hero.ANA, Button.ABILITY_2)), # reduce heal by up to 50% on hit, upgrade duration to 3s
-    "{} littles".format(abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE)), # shrinking up to 0.6x size
+    "{} caut-ton candy".format(abilityIconString(Hero.ANA, Button.ABILITY_2)), # reduce heal by up to 50% on hit, upgrade duration to 3s
+    "{} smallties".format(abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE)), # shrinking up to 0.6x size
     "{} hackshey's kisses".format(abilityIconString(Hero.SOMBRA, Button.ULTIMATE)), # hack when you bring target below 50% hp
     "{} ice scream".format(abilityIconString(Hero.MEI, Button.ABILITY_1)), # freeze nearby enemies when you get killing blow
     "{} barriero rocher".format(abilityIconString(Hero.SYMMETRA, Button.ULTIMATE)), # barrier
@@ -179,26 +179,6 @@ globalvar marketDescs = [
     "take better control of your personal space.\neach level increases knockback dealt by 1%.",
     "become resistant to knockbacks.\neach level decreases knockback received by 1%.",
     "go even faster.\neach level adds 1% to your current movement speed."
-]
-globalvar marketPrices = [
-    45000, # caut
-    105000, # shrink
-    80000, # hack
-    9500, # ice
-    3500, # barrier
-    650, # kb
-    800, # steadfast
-    80000 # move
-]
-globalvar marketStatCaps = [
-    3, # caut
-    40, # shrink
-    4, # hack
-    3, # freeze
-    1000, # barrier
-    500, # kb
-    0, # steadfast
-    200 # move
 ]
 globalvar baseMarketStats = [
     0, # caut
@@ -276,6 +256,8 @@ globalvar minerCount
 globalvar moonPos
 globalvar moonPosArr = [vect(147.9, 14, 49.5), vect(108.5, 11, -31), vect(110, 18.1, -0.4), vect(132.2, 17.7, 11.1)]
 globalvar moonOwner # briefly used for trooning
+
+### event ###
 globalvar eventType
 globalvar eventDetail
 globalvar eventText
