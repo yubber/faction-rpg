@@ -1442,6 +1442,7 @@ rule "yeet debug bot":
 - faction colors on overhead text
 - mercy abilities
 - change moon shrine to based on best player's level (21789lv, %12257/1780%)
+- screenshots for workshop.codes
 
 balance
 - exponential growth of catchup $ amount
