@@ -76,15 +76,16 @@ globalvar factGoalStrings = [
     "advance sombra's nefarious agenda."
 ] # USED FOR TROON CHECK
 globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
-    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s (faction earnings bonus is doubled for this amount).\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
-    "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
+    "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
+    "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 30% more money.\nhalf of damage dealt contributes to your faction goal.",
     "when you get a killing blow your held money increases by 10% and you earn 40% more money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
-    "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
+    "gain 50% more money from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
-globalvar factMembers = [0, 0, 0, 0]
+globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some reason
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
 globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels. USED FOR TROON CHECK
-globalvar factLvUp = [5000, 5000, 5000, 5000]
+globalvar factLvUp = [2000, 2000, 2000, 2000]
+globalvar topPlayer
 
 ### shop ###
 globalvar shopIcons = [
@@ -199,7 +200,7 @@ globalvar baseMarketStats = [
     0, # freeze
     100, # barrier
     0, # kb
-    0, # steadfast
+    -100, # steadfast
     0, # rapid
     0 # move
 ]
