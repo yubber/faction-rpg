@@ -1,6 +1,6 @@
 settings {
     "main": {
-        "description": "join a faction & get unique powers to complete its supernatural goals. features catchup mechanics, diverse ways to make money & a clean interface.\n\nyubz made it",
+        "description": "join a faction & get unique powers to complete its supernatural goals. features catchup mechanics, diverse ways to make money & a clean interface.\n\nyubz made it\nuse code GJWAZ to get the latest updates",
         "modeName": "rpg with factions"
     },
     "lobby": {
@@ -26,6 +26,10 @@ settings {
         "allTeams": {
             "dva": {
                 "spawnWithoutMech": true
+            },
+            "sombra": {
+                "ability1Cooldown%": 150
+                "ability2Cooldown%": 200
             }
         }
     }
@@ -38,7 +42,7 @@ settings {
 #!define MoneyMult (factLevels[eventPlayer.faction] * 0.1 + 1)
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
-#!define ImportCode "pending"
+#!define ImportCode "GJWAZ"
 
 ### inits ###
 def bossEventCleanup():
@@ -59,13 +63,13 @@ def bossEventSetup():
 def questComplete():
     stopChasingVariable(eventPlayer.questProgress)
 	if eventPlayer.faction == FACTIONS.SOMBRUH:
-		smallMessage(eventPlayer, "{} good. the plan is going well.".format(heroIcon(Hero.SOMBRA)))
+		smallMessage(eventPlayer, "{} good. the plan is going well. +${}, 40% ult".format(heroIcon(Hero.SOMBRA), QuestReward))
 		eventPlayer.setUltCharge(eventPlayer.getUltCharge() + 40)
         factPoints[eventPlayer.faction] += max(1700, eventPlayer.level/2)
 	else:
-		smallMessage(eventPlayer, "{} well done.".format(heroIcon(Hero.SOMBRA)))
+		smallMessage(eventPlayer, "{} well done. +${}".format(heroIcon(Hero.SOMBRA), QuestReward))
 
-    eventPlayer.money += (2000 + 2 * eventPlayer.level) * (2 if eventPlayer.faction == FACTIONS.SOMBRUH else 1) * MoneyMult
+    eventPlayer.money += QuestReward
 
 	eventPlayer.questType = -1
 	eventPlayer.questProgress = -1
@@ -91,7 +95,7 @@ def shut():
 
 def resume():
     eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED] + eventPlayer.marketStats[MARKET.MOVESPEED])
-    eventPlayer.setGravity(100)
+    eventPlayer.setGravity(100 if eventType != EVENTS.GRAVITY else eventDetail)
     eventPlayer.clearStatusEffect(Status.PHASED_OUT)
     eventPlayer.clearStatusEffect(Status.HACKED)
     eventPlayer.allowButton(Button.ABILITY_1)
@@ -105,6 +109,8 @@ def resume():
     eventPlayer.allowButton(Button.JUMP)
     eventPlayer.allowButton(Button.RELOAD)
     eventPlayer.respawn()
+    wait()
+    eventPlayer.teleport(factSpawns[eventPlayer.faction])
     wait(0.3)
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
         eventPlayer.setUltCharge(100)
@@ -116,7 +122,7 @@ rule "global init":
     createEffect(getAllPlayers(), Effect.ORB, Color.RED,
         vect(131.1, 14.5, 26.1) + vect(0, 0.5*sin(2*getTotalTimeElapsed()), 0), 1, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createEffect(getAllPlayers(), Effect.RING, Color.RED, vect(131.1, 11, 26.1), BloodRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "blood god - sacrifice 10% max hp /s\nfor money (1 hp : $1)", vect(131.1, 15.3, 26.1), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "blood god - sacrifice 10% max hp /s\nfor money (1 hp : $0.50)", vect(131.1, 15.3, 26.1), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
     createEffect(getAllPlayers(), Effect.ENERGY_SOUND ,Color.WHITE, vect(131.1, 12, 26.1), 25, EffectReeval.VISIBILITY)
 
     wait()
@@ -144,9 +150,20 @@ rule "global init":
         "stand here to steal (40% / 3s, 5s before first steal)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     wait()
+
+    # coconut.jpg moment
+    for i_init in range(10):
+        factPoints[len(factPoints) - 1]++
+        createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 41 - i_init*0.22, -26.06), vect(41.68, 41 - i_init*0.22, -28.89),
+            Color.SKY_BLUE if abs(4.5-i_init) >= 3.5 else (
+                Color.ROSE if abs(4.5-i_init) >= 1.5 else Color.WHITE
+            ), EffectReeval.VISIBILITY)
+    factSpawns = [vect(98.38, 14, 14.15), vect(66, 15.4, 14.5), vect(144.65, 11, -8.53), vect(184.13, 19, 73.26)]
+    factPoints.append(getLastCreatedEntity())
+
     ### time HUD + shop prompt ###
     hudSubtext(getAllPlayers(), "{}:{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
-    hudSubheader(getAllPlayers(), "stand still while holding [{}] and [{}] to enter the shop\nuse import code {} for the latest version".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT), ImportCode), HudPosition.LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudSubheader(getAllPlayers(), "stand still while holding [{}] and [{}] to enter the shop\nuse import code {} for the latest version\n\n".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT), ImportCode), HudPosition.LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
     wait()
     ### player money/faction/level/quest HUD ###
@@ -163,21 +180,19 @@ rule "global init":
     ### black market hud is in its init rule ###
 
     #### event ###
-    hudText(localPlayer if localPlayer.faction >= 0 and localPlayer not in shoppers else [], "\&fullwidth_space;{} ({}s)\&fullwidth_space;".format(eventText, round(eventTime)), "", " \n ", HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
+    hudText(localPlayer if localPlayer.faction >= 0 and ((localPlayer in shoppers) == (localPlayer in marketers)) else [], "\&fullwidth_space;{} ({}s)\&fullwidth_space;".format(eventText, round(eventTime)), "", " \n ", HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
     ### dakka hud ###
     hudSubtext(getAllPlayers(), " ", HudPosition.LEFT, 1, Color.GRAY, HudReeval.VISIBILITY)
-    createProgressBarInWorldText(localPlayer if localPlayer.dakkaFx != null else [],
-        100 * localPlayer.dakkaTime / localPlayer.stats[STATS.DAKKA], "rapid fire ({}s left) | [{}] to cancel".format(round(localPlayer.dakkaTime), buttonString(Button.INTERACT)),
+    createProgressBarInWorldText(localPlayer if localPlayer.dakkaTime > 0 else [],
+        100 * localPlayer.dakkaTime / (localPlayer.marketStats[MARKET.DAKKA]/2), "rapid fire ({}s left) | [{}] to cancel".format(round(localPlayer.dakkaTime), buttonString(Button.INTERACT)),
         updateEveryTick(
             localPlayer.getEyePosition() + 100 * ( # X_POS * World Vector Of(Right, Local Player, Rotation) +
             (-0.6 - 0.200) * angleToDirection(horizontalAngleOfDirection(localPlayer.getFacingDirection()), verticalAngleOfDirection(localPlayer.getFacingDirection()) - 90) +
             3 * localPlayer.getFacingDirection())), 1.2, Clip.NONE, Color.SKY_BLUE, Color.WHITE, ProgressWorldTextReeval.VISIBILITY_POSITION_VALUES_AND_COLOR, SpecVisibility.DEFAULT)
 
-    hudText(localPlayer if localPlayer.stats[STATS.DAKKA] else [], abilityIconString(Hero.PHARAH, Button.ULTIMATE),
-        "rapid fire (lasts {}s, cd {}s)".format(localPlayer.stats[STATS.DAKKA], RapidCd), "ready" if localPlayer.dakkaTime >= 0 else "cooldown {}s".format(round(abs(localPlayer.dakkaTime))),
-        HudPosition.LEFT, 1.1, Color.AQUA, Color.AQUA, Color.TURQUOISE if localPlayer.dakkaTime >= 0 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR)
-
-    ###
+    hudText(localPlayer if localPlayer.marketStats[MARKET.DAKKA] else [], abilityIconString(Hero.PHARAH, Button.ULTIMATE),
+        "rapid fire [{}] + [{}] | lasts {}s, cd {}s".format(buttonString(Button.INTERACT), buttonString(Button.MELEE), localPlayer.marketStats[MARKET.DAKKA]/2, RapidCd), "ready" if localPlayer.dakkaTime >= 0 else "cooldown {}s".format(round(abs(localPlayer.dakkaTime))),
+        HudPosition.LEFT, 1.1, Color.ORANGE, Color.ORANGE, Color.YELLOW if localPlayer.dakkaTime >= 0 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -197,7 +212,7 @@ rule "global init":
         3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.AQUA, SpecVisibility.DEFAULT)
     createInWorldText(localPlayer if localPlayer.faction == -1 else [], b"faction goal: {}".format(factGoalStrings[localPlayer.option]), factCams[localPlayer.option] + 100 * (
         (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
-        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 3, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.SKY_BLUE, SpecVisibility.DEFAULT)
+        3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 2.7, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.SKY_BLUE, SpecVisibility.DEFAULT)
     createInWorldText(localPlayer if localPlayer.faction == -1 else [], factDescs[localPlayer.option], factCams[localPlayer.option] + 100 * (
         (-1.2 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), verticalAngleOfDirection(directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])) - 90) +
         3 * directionTowards(factCams[localPlayer.option], factSpawns[localPlayer.option])), 2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
@@ -232,26 +247,27 @@ rule "global init":
 	# icon row
     for i_init in range(ShopLen):
         createInWorldText(shoppers, shopIcons[i_init], ShopCamPos + 100 * (
-            evalOnce(i_init - floor(ShopLen/2))* 0.3 * crossProduct(directionTowards(ShopCamPos, ShopLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90)) +
+            evalOnce(i_init - floor(ShopLen/2))* 0.32 * crossProduct(directionTowards(ShopCamPos, ShopLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90)) +
             (0.65 - 0.200 + 0.02*sin(2*getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
             3 * directionTowards(ShopCamPos, ShopLookPos)), 2.55, Clip.NONE, WorldTextReeval.VISIBILITY_AND_COLOR, rgb(245,252,245), SpecVisibility.DEFAULT)
         # if localPlayer.option == evalOnce(i_init) else Color.GRAY # color change works but not on ability icons
+        # 2.4 + max(0, 0.1*4-abs(evalOnce(i_init)-localPlayer.option)) # does size reeval on iwt?
         wait()
     # arrow
 	createInWorldText(shoppers, "\&up_black_triangle;", ShopCamPos + 100 * (
-        (localPlayer.option - floor(ShopLen/2))* 0.3 * crossProduct(directionTowards(ShopCamPos, ShopLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90)) +
+        (localPlayer.option - floor(ShopLen/2))* 0.32 * crossProduct(directionTowards(ShopCamPos, ShopLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90)) +
         (0.45 - 0.200 + 0.05*sin(2*getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 2.5, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, Color.BLUE, SpecVisibility.DEFAULT)
     # shop item
     createInWorldText(shoppers, "◀ {} {} ▶".format(shopIcons[localPlayer.option],
         shopItems[localPlayer.option]), ShopCamPos + 100 * (
-        (-0.1 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        (-0.12 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 4.2, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     createInWorldText(shoppers, b" {} / {} {} | ${} ".format(abs(localPlayer.stats[localPlayer.option]),
         abs(statCaps[localPlayer.option]),
         shopUnits[localPlayer.option],
         shopPrices[localPlayer.option]), ShopCamPos + 100 * (
-        (-0.27 - 0.200 + 0.02*sin(getTotalTimeElapsed() % 6.283)) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
+        (-0.27 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)), verticalAngleOfDirection(directionTowards(ShopCamPos, ShopLookPos)) - 90) +
         3 * directionTowards(ShopCamPos, ShopLookPos)), 3, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
     # createInWorldText(shoppers, "({} / {})".format(
     #     localPlayer.option + 1, ShopLen), ShopCamPos + 100 * (
@@ -285,15 +301,8 @@ rule "global init":
     # tutorial?
     createInWorldText(getAllPlayers(), "view tutorial?\n[{}] - yes    [{}] - skip".format(buttonString(Button.PRIMARY_FIRE), buttonString(Button.SECONDARY_FIRE)), vect(-25.7, -0.3, 21.46), 2.3, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
-    # coconut.jpg moment
-    factPoints.append(null)
-    for i_init in range(10):
-        factPoints[len(factPoints) - 1]++
-        createBeam(getAllPlayers(), Beam.GOOD, vect(41.72, 41 - i_init*0.22, -26.06), vect(41.68, 41 - i_init*0.22, -28.89),
-            Color.SKY_BLUE if abs(4.5-i_init) >= 3.5 else (
-                Color.ROSE if abs(4.5-i_init) >= 1.5 else Color.WHITE
-            ), EffectReeval.VISIBILITY)
-    factPoints.append(getLastCreatedEntity())
+    i_init = 0.1 # i_init is ready for use in market
+
 rule "player init":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
@@ -304,11 +313,11 @@ rule "player init":
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
     eventPlayer.disableGamemodeHud() # gamemode hud used for events
     eventPlayer.disableHeroHUD()
-    createInWorldText([] if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else getAllPlayers().exclude(eventPlayer),
+    createInWorldText(getAllPlayers().exclude(eventPlayer),
         "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
         "\n{} faction enemy".format(iconString(Icon.SKULL)) if localPlayer.faction in eventPlayer.enemies else ""),
         eventPlayer.getEyePosition() + Vector.UP,
-        1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,150), SpecVisibility.ALWAYS)
+        1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,5 if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else 150), SpecVisibility.ALWAYS)
     eventPlayer.hudId = getLastCreatedEntity()
     wait()
     if not eventPlayer.isDummy():
@@ -327,11 +336,11 @@ rule "player init":
                 wait(4)
             eventPlayer.startCamera(moonPos + Vector.UP * 6, moonPos, 15)
             wait(0.32)
-            smallMessage(eventPlayer, "you can also battle for possession of the {} moon spirit.".format(iconString(Icon.MOON)))
+            smallMessage(eventPlayer, "you can also battle for possession of the {} moon shrine.".format(iconString(Icon.MOON)))
             wait(2)
             smallMessage(eventPlayer, "it blesses you with money, ult charge and healing. money given is not increased by faction bonus, but scales with time.")
             wait(4.5)
-            smallMessage(eventPlayer, "the spirit also moves occasionally, which removes your ownership.")
+            smallMessage(eventPlayer, "the shrine also moves occasionally, which removes your ownership.")
             wait(3)
             smallMessage(eventPlayer, "now it's time to pick a faction.")
             wait(2)
@@ -342,6 +351,11 @@ rule "player init":
         eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
         waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
         eventPlayer.faction = eventPlayer.option
+
+        if factMembers[eventPlayer.faction] == 0:
+            pass # catchup code todo
+        factMembers[eventPlayer.faction]++
+
         wait()
         eventPlayer.stopCamera()
         # eventPlayer.enableGamemodeHud()
@@ -356,8 +370,9 @@ rule "player init":
     smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
 
     chase(eventPlayer.cautTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
+
     # catchup
-    eventPlayer.money = 6969696969 #max(500, (getTotalTimeElapsed()-360) * 90)
+    eventPlayer.money = 5000 + max(0, (getTotalTimeElapsed()-360) * 85)
     # event update
     switch eventType:
         case EVENTS.GRAVITY:
@@ -444,7 +459,7 @@ rule "shop buy":
         # buy
         eventPlayer.money -= eventPlayer.buyqty * shopPrices[eventPlayer.option]
         eventPlayer.stats[eventPlayer.option] += eventPlayer.buyqty
-        eventPlayer.level += eventPlayer.buyqty
+        eventPlayer.level += eventPlayer.buyqty * shopPrices[eventPlayer.option] / 100
         playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, ShopCamPos, 70)
         playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.VIOLET, ShopLookPos, 5)
 
@@ -461,12 +476,12 @@ rule "shop refund":
 
     if eventPlayer.faction == FACTIONS.GAIA and eventPlayer.option in [STATS.DEFENSE, STATS.DAMAGE]:
         eventPlayer.money += shopPrices[eventPlayer.option] * eventPlayer.stats[eventPlayer.option] - 75
-        eventPlayer.level -= eventPlayer.stats[eventPlayer.option] - 75
+        eventPlayer.level -= shopPrices[eventPlayer.option] * (eventPlayer.stats[eventPlayer.option] - 75) / 100
         eventPlayer.stats[eventPlayer.option] = 75
     else:
         eventPlayer.money += shopPrices[eventPlayer.option] * abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option])
         eventPlayer.stats[eventPlayer.option] = baseStats[eventPlayer.option]
-        eventPlayer.level -= abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option])
+        eventPlayer.level -= abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option]) * shopPrices[eventPlayer.option] / 100
     smallMessage(eventPlayer, "upgrade refunded.")
 
 rule "shop leave":
@@ -484,10 +499,14 @@ rule "shop leave":
     eventPlayer.setProjectileGravity(-0.25 * eventPlayer.stats[STATS.PROJECTILE] + 125)
     eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
     wait()
+    removeHealthPool(eventPlayer.armorId)
+    eventPlayer.addHealthPool(Health.ARMOR, eventPlayer.stats[STATS.ARMOR], true, false)
+    eventPlayer.armorId = getLastCreatedHealthPool()
     # set ammo
     eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
     eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
     wait(0.032)
+    eventPlayer.level = round(eventPlayer.level)
     eventPlayer.setScore(eventPlayer.level / 100)
     if eventPlayer.faction == FACTIONS.RICH: # bank
         factPoints[eventPlayer.faction] += shopPrices[STATS.OBJECTIVE] * (eventPlayer.stats[STATS.OBJECTIVE] - 100) / 10
@@ -550,7 +569,7 @@ rule "enter crypto mine":
     @Condition distance(eventPlayer, CryptoPos) <= CryptoRadius
     minerCount += 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
     createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
-        vect(184.16, 27.5, 40.71), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+        vect(184.15, 27.28, 40.57), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     eventPlayer.mineFx = getLastCreatedEntity()
     chase(eventPlayer.money, 999999999, rate=MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
     if eventPlayer.questType == QUEST_TYPE.CRYPTO:
@@ -580,13 +599,13 @@ rule "beg":
         wait(1)
     while RULE_CONDITION
 
-# moon spirit
+# moon shrine
 rule "moon init & repos":
     @Condition isGameInProgress()
     # init
     createEffect(getAllPlayers(), Effect.CLOUD, Color.VIOLET, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createEffect(getAllPlayers(), Effect.RING, Color.ROSE, moonPos, 3, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-    createIcon(localPlayer if not localPlayer in shoppers else [], moonPos + Vector.UP * (3 + 0.3*sin(getTotalTimeElapsed())),
+    createIcon(localPlayer if (localPlayer in shoppers) == (localPlayer in marketers) else [], moonPos + Vector.UP * (3 + 0.3*sin(getTotalTimeElapsed())),
         Icon.MOON, IconReeval.VISIBILITY_POSITION_AND_COLOR, rgb(127 + 30*sin(getTotalTimeElapsed()), 0, 255), false)
     # createInWorldText(getAllPlayers(), "")
     # loop
@@ -594,8 +613,8 @@ rule "moon init & repos":
         moonOwner = null
         playEffect(localPlayer, DynamicEffect.EXPLOSION_SOUND, Color.WHITE, localPlayer, 69)
         moonPos = random.choice(moonPosArr.exclude(moonPos))
-        smallMessage(localPlayer if localPlayer.faction >= 0 else [], "{} the moon spirit has moved. claim it to gain its power.".format(iconString(Icon.MOON)))
-        wait(random.randint(90, 210))
+        smallMessage([x for x in getAllPlayers() if x.faction >= 0], "{} the moon shrine has moved. claim it to gain its power.".format(iconString(Icon.MOON)))
+        wait(random.randint(90, 120))
 
 rule "moon claim":
     @Event eachPlayer
@@ -603,13 +622,13 @@ rule "moon claim":
     @Condition distance(eventPlayer, moonPos) < 3
     @Condition len(getPlayersInRadius(moonPos, 3, Team.ALL, LosCheck.SURFACES)) == 1
     wait(0.32, Wait.ABORT_WHEN_FALSE)
-    smallMessage(eventPlayer, "claiming moon spirit...".format(iconString(Icon.MOON)))
+    smallMessage(eventPlayer, "claiming moon shrine...".format(iconString(Icon.MOON)))
     wait(1.5, Wait.ABORT_WHEN_FALSE)
     playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.VIOLET, moonPos + Vector.UP, 3)
     playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.VIOLET, moonPos + Vector.UP, 40)
     smallMessage(moonOwner, "{} someone more worthy has claimed me.".format(iconString(Icon.MOON)))
     moonOwner = eventPlayer
-    smallMessage(eventPlayer, "{} at your service.".format(iconString(Icon.MOON)))
+    smallMessage(eventPlayer, "{} at your service. +${}, 2% ult, 10hp /s".format(iconString(Icon.MOON), MoonFormula))
 
 rule "moon reward":
     @Condition isGameInProgress()
@@ -617,7 +636,7 @@ rule "moon reward":
     do:
         moonOwner.setUltCharge(1 + moonOwner.getUltCharge())
         heal(moonOwner, null, 5)
-        moonOwner.money += min(getTotalTimeElapsed(), 6000)
+        moonOwner.money += 0.5*MoonFormula # values also shown in moon claim text
         wait(0.5)
     while RULE_CONDITION
 
@@ -661,11 +680,11 @@ rule "get sombra quest":
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.CRYPTO:
-            eventPlayer.questGoal = max(eventPlayer.level/2, 400) * random.uniform(0.8, 1.3)
+            eventPlayer.questGoal = max(eventPlayer.level/3, 400) * random.uniform(0.8, 1.3)
             eventPlayer.questProgress = 0
             break
         case QUEST_TYPE.DAMAGE:
-            eventPlayer.questGoal = random.randint(150, 270) + eventPlayer.level / 10
+            eventPlayer.questGoal = random.randint(150, 270) + eventPlayer.level / 15
             eventPlayer.questProgress = 0
             break
 
@@ -694,11 +713,12 @@ rule "damage quest":
 # bases
 rule "enter base & update faction level":
     @Event eachPlayer
-    @Condition eventPlayer.hasStatusEffect(Status.PHASED_OUT)
+    @Condition eventPlayer.faction >= 0
     @Condition distance(eventPlayer, factSpawns[eventPlayer.faction]) <= 3
     smallMessage(eventPlayer, "entered your faction's base. you're invulnerable here but can't do damage.")
     # heal, phase, pacify
-    heal(eventPlayer, null, eventPlayer.getMaxHealth())
+    # heal disabled to encourage gaia simping
+    # heal(eventPlayer, null, eventPlayer.getMaxHealth())
     eventPlayer.setStatusEffect(null, Status.PHASED_OUT, 9999)
     eventPlayer.setStatusEffect(null, Status.UNKILLABLE, 9999)
     eventPlayer.setDamageDealt(0)
@@ -749,11 +769,12 @@ rule "rob bank":
     wait(0.16, Wait.ABORT_WHEN_FALSE)
 	smallMessage(eventPlayer, "robbing the bank. careful, the bourgeoisie have been alerted!")
 	bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
-	wait(2)
+	wait(2, Wait.ABORT_WHEN_FALSE)
 	while (distance(eventPlayer, BankPos) < 5.5) and (factPoints[FACTIONS.RICH] > 0):
-		wait(3)
-			eventPlayer.money += 0.4 * factPoints[FACTIONS.RICH]
-			factPoints[FACTIONS.RICH] *= 0.6
+		wait(3, Wait.ABORT_WHEN_FALSE)
+        smallMessage(eventPlayer, "stole ${}".format(0.4 * factPoints[FACTIONS.RICH]))
+        eventPlayer.money += 0.4 * factPoints[FACTIONS.RICH]
+        factPoints[FACTIONS.RICH] *= 0.6
 		playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.RED, BankPos + Vector.UP, 9)
 
 # shop upgrades
@@ -770,17 +791,17 @@ rule "flight":
 rule "rapid fire input":
 	@Event eachPlayer
 	@Condition eventPlayer.isAlive()
-	@Condition eventPlayer.stats[STATS.DAKKA]
+	@Condition eventPlayer.marketStats[MARKET.DAKKA]
     @Condition eventPlayer.isHoldingButton(Button.INTERACT) and eventPlayer.isHoldingButton(Button.MELEE)
     if eventPlayer.dakkaTime < 0: # cooldown
         smallMessage(eventPlayer, "rapid fire not ready (wait {}s)".format(round(abs(eventPlayer.dakkaTime))))
     elif eventPlayer.dakkaTime == 0: # activate
-        eventPlayer.dakkaTime = eventPlayer.stats[STATS.DAKKA]
+        eventPlayer.dakkaTime = eventPlayer.marketStats[MARKET.DAKKA]/2
         chase(eventPlayer.dakkaTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
-        playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.SKY_BLUE, eventPlayer.getEyePosition(), 1.5)
+        playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.ORANGE, eventPlayer.getEyePosition(), 1.5)
         playEffect(getAllPlayers(), DynamicEffect.BUFF_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
-        createEffect(getAllPlayers(), Effect.SPARKLES, Color.SKY_BLUE, eventPlayer, 1.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-        eventPlayer.dakkaFx = getLastCreatedEntity()
+        # createEffect(getAllPlayers(), Effect.SPARKLES, Color.ORANGE, eventPlayer, 1.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+        # eventPlayer.dakkaFx = getLastCreatedEntity()
         wait(eventPlayer.dakkaTime) # can't abort or won't set cd
         eventPlayer.dakkaTime = -RapidCd
 
@@ -789,6 +810,7 @@ rule "dakkadakkadakka":
     @Condition eventPlayer.dakkaTime > 0
     do:
         eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
+        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.ORANGE, eventPlayer, 2)
         wait(0.112)
     while RULE_CONDITION
 
@@ -800,10 +822,10 @@ rule "rapid fire end":
         # smallMessage(eventPlayer, "[{}] hold to cancel rapid fire...".format(buttonString(Button.INTERACT)))
         wait(0.56, Wait.ABORT_WHEN_FALSE)
         eventPlayer.dakkaTime = -RapidCd
-    destroyEffect(eventPlayer.dakkaFx)
-    playEffect(getAllPlayers(), DynamicEffect.BAD_EXPLOSION, Color.BLUE, eventPlayer, 1.5)
-    playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
-    eventPlayer.dakkaFx = 0
+    # destroyEffect(eventPlayer.dakkaFx)
+    playEffect(getAllPlayers(), DynamicEffect.BAD_EXPLOSION, Color.ORANGE, eventPlayer, 1.5)
+    playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 80)
+    # eventPlayer.dakkaFx = 0
 
 rule "min ult":
     @Event eachPlayer
@@ -821,49 +843,187 @@ rule "apply hack & caut var":
     if ((eventPlayer.marketStats[MARKET.HACK] > 0) # hack
     and (victim.getHealth() < 0.5 * victim.getMaxHealth())
     and (eventDamage + victim.getHealth() >= 0.5 * victim.getMaxHealth())):
-        victim.setStatusEffect(eventPlayer, Status.HACKED, eventPlayer.marketStats[MARKET.HACK])
+        victim.setStatusEffect(eventPlayer, Status.HACKED, eventPlayer.marketStats[MARKET.HACK]/2)
 
-    if victim.cautTime < eventPlayer.marketStats[MARKET.CAUT]:
-        victim.cautTime = eventPlayer.marketStats[MARKET.CAUT]
+    if victim.cautTime < eventPlayer.marketStats[MARKET.CAUT]/2:
+        victim.cautTime = eventPlayer.marketStats[MARKET.CAUT]/2
 
 rule "apply caut":
     @Event eachPlayer
     @Condition eventPlayer.cautTime > 0
     eventPlayer.setHealingReceived(0.5 * eventPlayer.stats[STATS.HEALING])
-    waitUntil(eventPlayer.cautTime <= 0, 3.5)
+    waitUntil(eventPlayer.cautTime <= 0, 5)
     eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING])
 
 # black market
 rule "black market init & rotate":
-    createEffect(getAllPlayers(), Effect.CLOUD, Color.BLACK, vect(82.13, 7.5, -14.82), 5 + sin(4*getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+    createEffect(getAllPlayers(), Effect.CLOUD, Color.BLACK, vect(86.56, 7, -11.5), 4 + sin(4*getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+    createEffect(getAllPlayers(), Effect.BAD_AURA, Color.BLACK, vect(81.42, 9, -15.47), 4 + cos(4*getTotalTimeElapsed()), EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createInWorldText(getAllPlayers(), "{} psst... wanna buy some candy?".format(heroIcon(Hero.ANA)), vect(86.56, 7, -11.5), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.DEFAULT)
-    createInWorldText(getAllPlayers(),"current deal:", vect(81.42, 11, -15.47), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(), marketItems[marketNo], vect(81.42, 10.4 + 0.1*sin(getTotalTimeElapsed()), -15.47), 2.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_STRING_AND_COLOR, rgb(
-        128 + 127 * cosDeg(getTotalTimeElapsed() * 100),
-        128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),
-        128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240)
-    ), SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(), marketDescs[marketNo], vect(81.42, 9.1, -15.47), 1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(),"${}\nlevel {} / {}\nnext deal in {}s".format(marketPrices[marketNo], localPlayer.marketStats[marketNo], marketStatCaps[marketNo], floor(marketTime)), vect(81.42, 8.1, -15.47), 1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
-    createInWorldText(getAllPlayers(), "[{}] to buy\n[{}] to downgrade (no refunds)\n[{}] while buying or downgrading\nto do it quickly".format(buttonString(Button.INTERACT), buttonString(Button.MELEE), buttonString(Button.CROUCH)),
-        vect(81.42, 7, -15.47), 1, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    # createInWorldText(getAllPlayers(),"current deal:", vect(81.42, 11, -15.47), 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY, Color.WHITE, SpecVisibility.ALWAYS)
+    # createInWorldText(getAllPlayers(), marketItems[marketNo], vect(81.42, 10.4 + 0.1*sin(getTotalTimeElapsed()), -15.47), 2.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_STRING_AND_COLOR, rgb(
+    #     128 + 127 * cosDeg(getTotalTimeElapsed() * 100),
+    #     128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),
+    #     128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240)
+    # ), SpecVisibility.ALWAYS)
+    createInWorldText(getAllPlayers(), "[{}] + walk forward\nto visit ana's secret shop".format(buttonString(Button.INTERACT)), vect(81.42, 9.1, -15.47), 2, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
+    # createInWorldText(getAllPlayers(),"${}\nlevel {} / {}\nnext deal in {}s".format(marketPrices[marketNo], localPlayer.marketStats[marketNo], marketStatCaps[marketNo], floor(marketTime)), vect(81.42, 8.1, -15.47), 1.4, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.ALWAYS)
+    # createInWorldText(getAllPlayers(), "[{}] to buy\n[{}] to downgrade (no refunds)\n[{}] while buying or downgrading\nto do it quickly".format(buttonString(Button.INTERACT), buttonString(Button.MELEE), buttonString(Button.CROUCH)),
+    #     vect(81.42, 7, -15.47), 1, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], "next item in {}s".format(round(marketTime)),
+        MarketCamPos + 100 * (
+            1.55 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (1.5 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        2.2,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_STRING,
+        Color.WHITE,
+        SpecVisibility.DEFAULT)
+
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], "[w/s] (move forward/back) to scroll\n\n[{}] to buy (only if item is in rotation)\n\n[{}] to downgrade (no refunds)\n\n[{}] while buying or\ndowngrading to do it quickly\n\nhold [{}] to leave".format(buttonString(Button.JUMP), buttonString(Button.ULTIMATE), buttonString(Button.CROUCH), buttonString(Button.INTERACT)),
+        MarketCamPos + 100 * (
+            1.55 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (-0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        1.5,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_STRING,
+        Color.WHITE,
+        SpecVisibility.DEFAULT)
+
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], marketDescs[localPlayer.option],
+        MarketCamPos + 100 * (
+            1.55 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (0.3 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        2,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_STRING,
+        Color.WHITE,
+        SpecVisibility.DEFAULT)
+
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], "${} | level {} / {}".format(marketPrices[localPlayer.option], localPlayer.marketStats[localPlayer.option], marketStatCaps[localPlayer.option]),
+        MarketCamPos + 100 * (
+            1.55 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (0.9 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        2,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_STRING,
+        Color.WHITE,
+        SpecVisibility.DEFAULT)
+
+    # item name
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], marketItems[localPlayer.option],
+        MarketCamPos + 100 * (
+            1.55 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (1.2 + 0.05*sin(getTotalTimeElapsed()) - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        4.5,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_POSITION_STRING_AND_COLOR,
+        Color.GRAY if localPlayer.option != marketNo else rgb(128 + 127 * cosDeg(getTotalTimeElapsed() * 100),128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240) ),
+        SpecVisibility.DEFAULT)
+
+    # arrow
+    createInWorldText(
+        localPlayer if localPlayer in marketers else [], "\&left_hand;{}".format(heroIcon(Hero.ANA)),
+        MarketCamPos + 100 * (
+            (-0.1 + 0.05 * sin(2*getTotalTimeElapsed())) * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (1.3 - localPlayer.option*0.25 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        3,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_POSITION,
+        Color.BLUE,
+        SpecVisibility.DEFAULT)
+
+    waitUntil(i_init == 0.1, 9999)
+    for i_init in range(MarketLen):
+        createInWorldText(
+        localPlayer if localPlayer in marketers else [], evalOnce(marketItems[i_init]),
+        MarketCamPos + 100 * (
+            -1.1 * crossProduct(directionTowards(MarketCamPos, MarketLookPos), angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90)) +
+            (1.3 - evalOnce(i_init)*0.25 - 0.200) * angleToDirection(horizontalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)), verticalAngleOfDirection(directionTowards(MarketCamPos, MarketLookPos)) - 90) +
+            3 * directionTowards(MarketCamPos, MarketLookPos)),
+        2.5,
+        Clip.NONE,
+        WorldTextReeval.VISIBILITY_AND_COLOR,
+        Color.AQUA if marketNo == evalOnce(i_init) else Color.GRAY,
+        SpecVisibility.DEFAULT)
+        wait()
 
     chase(marketTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
     while true:
-        marketTime = random.randint(150, 270)
+        marketTime = random.randint(60, 90)
         wait(marketTime)
-        marketNo = (marketNo + 1) % len(marketItems)
+        marketNo = (marketNo + 1) % MarketLen
+
+rule "black market scroll":
+    @Event eachPlayer
+    @Condition eventPlayer in marketers
+    @Condition eventPlayer.getThrottle().z != 0
+    do:
+        # smallMessage(eventPlayer, eventPlayer.option)
+        if eventPlayer.getThrottle().z > 0:
+            eventPlayer.option = MarketLen - 1 if eventPlayer.option == 0 else eventPlayer.option - 1
+        else:
+            eventPlayer.option++
+            eventPlayer.option %= MarketLen
+        wait(0.2, Wait.ABORT_WHEN_FALSE)
+    while RULE_CONDITION
+
+rule "black market enter":
+    @Event eachPlayer
+    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
+    @Condition eventPlayer.getThrottle().z > 0
+    @Condition not eventPlayer in marketers
+    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 2.5
+    # @Condition eventPlayer.isInViewAngle(vect(81.42, 8.5, -15.47), 100)
+    wait(0.112, Wait.ABORT_WHEN_FALSE)
+    eventPlayer.startCamera(MarketCamPos, MarketLookPos, 10)
+    marketers.append(eventPlayer)
+    shut()
+
+rule "black market leave":
+    @Event eachPlayer
+    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
+    @Condition eventPlayer in marketers
+    wait(0.8, Wait.ABORT_WHEN_FALSE)
+    resume()
+    eventPlayer.stopCamera()
+    wait()
+    marketers.remove(eventPlayer)
+    smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.ANA), random.choice(marketQuips)))
+    eventPlayer.startScalingSize(1 - eventPlayer.marketStats[MARKET.SHRINK]/100, false)
+    eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED] + eventPlayer.marketStats[MARKET.MOVESPEED])
+    eventPlayer.startScalingBarriers(eventPlayer.marketStats[MARKET.BARRIER]/100, factCams)
+    eventPlayer.setKnockbackReceived(eventPlayer.marketStats[MARKET.KNOCK])
+    eventPlayer.setKnockbackDealt(eventPlayer.marketStats[MARKET.STEADFAST])
+    eventPlayer.teleport(vect(88.51, 7.03, -9.72))
+    eventPlayer.setFacing(Vector.RIGHT, Relativity.TO_WORLD)
 
 rule "black market buy":
     @Event eachPlayer
-    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
-    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 3.3
-    @Condition eventPlayer.isInViewAngle(vect(81.42, 8.5, -15.47), 100)
+    @Condition eventPlayer.isHoldingButton(Button.JUMP)
+    @Condition eventPlayer in marketers
     do:
 		# message if can't buy 1
         if eventPlayer.money < marketPrices[marketNo]:
             playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
             smallMessage(eventPlayer, "{} sorry, but my candy is too expensive for you, traveller.".format(heroIcon(Hero.ANA)))
+            return
+
+        if eventPlayer.option != marketNo:
+            playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
+            smallMessage(eventPlayer, "{} i'm not selling that yet.".format(heroIcon(Hero.ANA)))
             return
 
         if eventPlayer.marketStats[marketNo] >= marketStatCaps[marketNo]:
@@ -874,44 +1034,31 @@ rule "black market buy":
         # buy
         eventPlayer.money -= marketPrices[marketNo]
         eventPlayer.marketStats[marketNo] ++
-        eventPlayer.level += 300
-        playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 70)
-        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.VIOLET, eventPlayer, 5)
-        wait(0.096)
+        eventPlayer.level += 25
+        playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, (MarketCamPos + MarketLookPos)/2, 70)
+        playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.VIOLET, (MarketCamPos + MarketLookPos)/2, 5)
+        wait(0.08)
         if not eventPlayer.isHoldingButton(Button.CROUCH):
             wait(0.16)
     while RULE_CONDITION
 
 rule "black market return":
     @Event eachPlayer
-    @Condition eventPlayer.isHoldingButton(Button.MELEE)
-    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 3.3
-    @Condition eventPlayer.isInViewAngle(vect(81.42, 8.5, -15.47), 100)
-    smallMessage(eventPlayer, "hold [{}] to return this item...".format(buttonString(Button.MELEE)))
-    wait(0.8, Wait.ABORT_WHEN_FALSE)
-    while eventPlayer.isHoldingButton(Button.MELEE):
-        wait(0.4, Wait.ABORT_WHEN_FALSE)
+    @Condition eventPlayer.isHoldingButton(Button.ULTIMATE)
+    @Condition eventPlayer in marketers
+    smallMessage(eventPlayer, "hold [{}] to return this item...".format(buttonString(Button.ULTIMATE)))
+    wait(0.64, Wait.ABORT_WHEN_FALSE)
+    while eventPlayer.isHoldingButton(Button.ULTIMATE):
         if eventPlayer.marketStats[marketNo] == baseMarketStats[marketNo]:
             playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
             smallMessage(eventPlayer, "{} you don't have any more candy to return.".format(heroIcon(Hero.ANA)))
             return
 
         eventPlayer.marketStats[marketNo]--
-        eventPlayer.level -= 300
-        wait(0.112)
+        eventPlayer.level -= 25
+        wait(0.096)
         if not eventPlayer.isHoldingButton(Button.CROUCH):
             wait(0.16)
-
-rule "black market leave, stat update":
-    @Event eachPlayer
-    @Condition distance(eventPlayer, vect(86.56, 7, -11.5)) <= 3.3
-    waitUntil(distance(eventPlayer, vect(86.56, 7, -11.5)) > 3, 9999)
-    smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.ANA), random.choice(marketQuips)))
-    eventPlayer.startScalingSize(1 - eventPlayer.marketStats[MARKET.SHRINK]/100, false)
-    eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED] + eventPlayer.marketStats[MARKET.MOVESPEED])
-    eventPlayer.startScalingBarriers(eventPlayer.marketStats[MARKET.BARRIER]/100, factCams)
-    eventPlayer.setKnockbackReceived(eventPlayer.marketStats[MARKET.KNOCK])
-    eventPlayer.setKnockbackDealt(eventPlayer.marketStats[MARKET.STEADFAST])
 
 # events
 rule "gen events":
@@ -945,6 +1092,9 @@ rule "gen events":
                     eventDetail = sorted(getAllPlayers(), lambda x: -x.level)[0] # target
                     bossEventSetup()
                     break
+                case EVENTS.WALLHACKS:
+                    getAllPlayers().startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
+                    break
                 case EVENTS.HERO:
                     for eventDetail in range(getNumberOfPlayers(Team.ALL)):
                         # reset ammo
@@ -957,20 +1107,21 @@ rule "gen events":
                         wait()
                     eventDetail = random.choice(getAllHeroes())
                     eventText = "event: {} hero swap".format(heroIcon(eventDetail))
-                    getAllPlayers().startForcingHero(eventDetail)
+                    [x for x in getAllPlayers() if x.faction >= 0].startForcingHero(eventDetail)
                     break
             bigMessage(getAllPlayers(), eventText)
-            eventTime = random.randint(20, 35)
+            eventTime = random.randint(35, 50)
             wait()
             wait(eventTime)
         else:
             switch eventType:
                 case EVENTS.HERO:
                     for eventType in range(getNumberOfPlayers(Team.ALL)):
-                        getAllPlayers()[eventType].startForcingHero(getAllPlayers()[eventType].eventVar)
-                        if getAllPlayers()[eventType].getCurrentHero() != eventDetail:
-                            getAllPlayers()[eventType].setMaxAmmo(0, getAllPlayers()[eventType].getMaxAmmo(0)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
-                            getAllPlayers()[eventType].setMaxAmmo(1, getAllPlayers()[eventType].getMaxAmmo(1)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                        if getAllPlayers()[eventType].eventVar != null:
+                            getAllPlayers()[eventType].startForcingHero(getAllPlayers()[eventType].eventVar)
+                            if getAllPlayers()[eventType].getCurrentHero() != eventDetail:
+                                getAllPlayers()[eventType].setMaxAmmo(0, getAllPlayers()[eventType].getMaxAmmo(0)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                                getAllPlayers()[eventType].setMaxAmmo(1, getAllPlayers()[eventType].getMaxAmmo(1)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
                         wait()
                     break
                 case EVENTS.BOSS:
@@ -980,9 +1131,11 @@ rule "gen events":
             eventType = -1
             eventText = "next event coming soon"
             getAllPlayers().setGravity(100)
+            getAllPlayers().stopForcingOutlineFor(getAllPlayers())
+            getAllPlayers().eventVar = null
             getAllPlayers().stopForcingCurrentHero()
             bigMessage(getAllPlayers(), "event ended.")
-            eventTime = random.randint(180, 270)
+            eventTime = random.randint(120, 180)
             # setMatchTime(30)
             wait()
             wait(eventTime)
@@ -999,9 +1152,10 @@ rule "elim handling":
 
     # troon check
     if len(factPoints) != len(factGoalStrings) + 1:
+        getAllPlayers().startCamera(Vector.DOWN, 2*Vector.DOWN, 0)
+        smallMessage(getAllPlayers(), "{} this gamemode has been tampered with. use import code {}".format(abilityIconString(Hero.SOMBRA, Button.ULTIMATE), ImportCode))
+        wait(3)
         while true:
-            getAllPlayers().startCamera(Vector.DOWN, 2*Vector.DOWN, 0)
-            smallMessage(getAllPlayers(), "{} this gamemode has been tampered with. use import code {}".format(abilityIconString(Hero.SOMBRA, Button.ULTIMATE), ImportCode))
             i_init = raycast(random.choice(getAllPlayers()), random.choice(getAllPlayers()), [], [], true).getNormal()
 
 
@@ -1012,15 +1166,16 @@ rule "final blow handling":
     victim.blower = eventPlayer
 
     # freeze
-    getPlayersInRadius(victim, 5, Team.ALL, LosCheck.SURFACES_AND_ALL_BARRIERS).exclude(eventPlayer).setStatusEffect(eventPlayer, Status.FROZEN, eventPlayer.marketStats[MARKET.ICE])
-    playEffect(victim, DynamicEffect.RING_EXPLOSION, Color.AQUA, victim, 5)
+    if eventPlayer.marketStats[MARKET.ICE]:
+        getPlayersInRadius(victim, 5, Team.ALL, LosCheck.SURFACES_AND_ALL_BARRIERS).exclude(eventPlayer).setStatusEffect(eventPlayer, Status.FROZEN, eventPlayer.marketStats[MARKET.ICE]/2)
+        playEffect(victim, DynamicEffect.RING_EXPLOSION, Color.AQUA, victim, 5)
 
 	# rich money bonus
 	if eventPlayer.faction == FACTIONS.RICH:
 		eventPlayer.money *= 1.1
     # money
     eventPlayer.money += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
-        * (2 if eventPlayer.faction == FACTIONS.RICH else 1)) * (eventDetail if eventType == EVENTS.KILL else 1) # bonuses to both steal portion & base money increase
+        * (1.4 if eventPlayer.faction == FACTIONS.RICH else 1)) * (eventDetail if eventType == EVENTS.KILL else 1) # bonuses to both steal portion & base money increase
 
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
 
@@ -1087,8 +1242,11 @@ rule "respawn":
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
         eventPlayer.setUltCharge(100)
 
-    wait(0.32)
+    wait(0.8)
     eventPlayer.forceButtonPress(Button.RELOAD)
+
+    if eventPlayer.money > (300 * eventPlayer.level): # shop reminder
+        smallMessage(eventPlayer, "remember to visit the shop! (stand still and hold [{}] + [{}])".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT)))
 
 ### faction specific behaviors ###
 rule "cult lifesteal & blood":
@@ -1102,6 +1260,7 @@ rule "gaia healing":
     @Condition eventPlayer.faction == FACTIONS.GAIA
     @Condition eventPlayer.isAlive()
     @Condition eventPlayer.isHoldingButton(Button.CROUCH)
+    @Condition eventPlayer.isOnGround()
     wait(0.4, Wait.ABORT_WHEN_FALSE)
     # @Condition distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL)) <= 3
     smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
@@ -1176,6 +1335,7 @@ rule "player leave cleanup":
     @Event playerLeft
     # clean huds, fx, etc
     shoppers.remove(eventPlayer)
+    marketers.remove(eventPlayer)
     factMembers[eventPlayer.faction]--
 
 	destroyEffect(eventPlayer.bloodFx)
@@ -1184,7 +1344,7 @@ rule "player leave cleanup":
     if eventPlayer.mineFx != null:
         destroyEffect(eventPlayer.mineFx)
         minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
-    destroyEffect(eventPlayer.dakkaFx)
+    # destroyEffect(eventPlayer.dakkaFx)
     # events
     if eventType == EVENTS.BOSS and eventPlayer == eventDetail: # if event player is the boss
         bossEventCleanup()
@@ -1249,7 +1409,7 @@ rule "debug bot spawn + advance market item":
     getLastCreatedEntity().faction = random.randint(0, FACTIONS.SOMBRUH)
     getLastCreatedEntity().startForcingButton(Button.CROUCH)
     getLastCreatedEntity().startForcingButton(Button.PRIMARY_FIRE)
-    getLastCreatedEntity().setMaxHealth(999999999999)
+    getLastCreatedEntity().level = random.randint(1, 50000)
     marketNo++
 
 rule "yeet debug bot":
@@ -1258,22 +1418,18 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
-- move tuto cam (market, intro)
-- armor stat
-- refund item that isn't in rotation
-- test freeze
 - more events (punching bag if slot available? faction point bonus? wallhax?)
+- hide ana txt at far range
+- faction colors on overhead text
+
+balance
+- increase max hp cost & balance blood crystal ratio
 - bank & robbing balance
+- echo ult clip size update
 - test sombra invis hud
 - earning $/s hud
 - balance catchup
 - catchup faction points for empty factions (do on player joining faction)
 - compensate for low faction membership in objectives
 
-faction select
-- children of gaia (goal: heal)
-- cult of the blood god (goal: feed blood)
-- the 0.1%
-- the singularity
-
- to encourage peace*/
+*/

@@ -2,6 +2,8 @@
 
 #!define ShopCamPos vect(67.5, 8.5, -27.3)
 #!define ShopLookPos vect(69.5, 8.5, -28.5)
+#!define MarketCamPos vect(17.14, 1.46, -26.09)
+#!define MarketLookPos vect(24.01, 1.02, -32.75)
 #!define BloodRadius 4.7
 #!define QuestPos vect(165.7, 12, 36.2)
 #!define GoldPos vect(123.2, 7, -17.2)
@@ -20,6 +22,7 @@ enum STATS:
     DAMAGE,
     AMMO,
     HEALTH,
+    ARMOR,
     HEALING,
     MOVESPEED,
     PROJECTILE,
@@ -43,13 +46,14 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     KILL,
     BLOOD,
     BOSS,
+    WALLHACKS,
     HERO # must be last
 
 # market enum below
 
 ### tutorial ###
-globalvar tutoCams = [vect(92.96, 76.23, -66.61), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8), vect(127.41, 39.38, -35.03)]
-globalvar tutoLooks = [vect(87.21, 20.45, 16.63), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1), vect(107.7, 11, 3.4)]
+globalvar tutoCams = [vect(118.43, 42.53, 58.05), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8), vect(127.41, 39.38, -35.03)]
+globalvar tutoLooks = [vect(108.66, 19.47, 15.22), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1), vect(107.7, 11, 3.4)]
 globalvar tutoStrings = [
     "welcome to the 131269th rpg gamemode in overwatch workshop.",
     "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
@@ -64,9 +68,9 @@ globalvar tutoStrings = [
 ### factions ###
 globalvar factNames = ["the children of gaia", "the cult of the blood god", "the bourgeoisie", "the crypto bros"]
 globalvar factCams = [vect(106.2, 17, 4.7), vect(89.6, 13.7, 32.8), vect(140.7, 12.5, 6.8), vect(200.7, 18.9, 70.4)]
-globalvar factSpawns = [vect(98.38, 14, 14.15), vect(66, 15.4, 14.5), vect(144.65, 11, -8.53), vect(184.13, 19, 73.26)]
+globalvar factSpawns # factSpawns is in global init rule to fight for blahaj
 globalvar factGoalStrings = [
-    "kill blizzcoin miners, avenge your faction members and heal the wounded.",
+    "kill blizzcoin miners and faction enemies, and heal the wounded.",
     "blood for the blood god.",
     "hoard money in the bank and defend it from robbers.",
     "advance sombra's nefarious agenda."
@@ -74,7 +78,7 @@ globalvar factGoalStrings = [
 globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s (faction earnings bonus is doubled for this amount).\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 50% more money.\nhalf of damage dealt contributes to your faction goal.",
-    "when you get a killing blow your held money increases by 10% and you earn double the money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
+    "when you get a killing blow your held money increases by 10% and you earn 40% more money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
     "gain double the earnings from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
 globalvar factMembers = [0, 0, 0, 0]
@@ -87,6 +91,7 @@ globalvar shopIcons = [
     abilityIconString(Hero.GENJI, Button.ULTIMATE),
     abilityIconString(Hero.DVA, Button.ABILITY_2),
     iconString(Icon.HEART),
+    abilityIconString(Hero.BRIGITTE, Button.ABILITY_2),
     abilityIconString(Hero.BAPTISTE, Button.ABILITY_1),
     abilityIconString(Hero.SOLDIER, Button.ABILITY_1),
     abilityIconString(Hero.HANZO, Button.ABILITY_2),
@@ -96,12 +101,13 @@ globalvar shopIcons = [
     # abilityIconString(Hero.ORISA, Button.SECONDARY_FIRE),
     abilityIconString(Hero.BRIGITTE, Button.ULTIMATE),
     abilityIconString(Hero.MERCY, Button.ULTIMATE),
-    abilityIconString(Hero.PHARAH, Button.ULTIMATE)
+    # abilityIconString(Hero.PHARAH, Button.ULTIMATE)
 ]
 globalvar shopItems = [
     "damage dealt",
     "ammo capacity",
     "max health",
+    "armor",
     "healing received",
     "movement speed",
     "projectile speed & lightness",
@@ -111,13 +117,14 @@ globalvar shopItems = [
     # "player shrinking",
     "faction goal progress",
     "flight (hold {})".format(Button.JUMP),
-    "rapid fire ({} + {})".format(Button.INTERACT, Button.MELEE)
+    # "rapid fire (works only for {}/{}/{}, etc.)".format(heroIcon(Hero.GENJI), heroIcon(Hero.LUCIO), abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE))
 ]
 globalvar shoppers = []
 globalvar baseStats = [
     100, # dmg
     100, # ammo
     100, # hp
+    0, # armor
     100, # heal
     100, #movespeed
     100, #projectile
@@ -126,13 +133,14 @@ globalvar baseStats = [
     -100, #dr
     # 0, #shrink
     100, #objective
-    false, # flight (false + 1 = 1)
-    0 # rapid
+    false # flight (false + 1 = 1)
+    # 0 # rapid
 ]
 globalvar shopUnits = [
     "%", # dmg
     "%", # ammo
     "%", # hp
+    "hp", # amore
     "%", # heal
     "%", #movespeed
     "%", #projectile
@@ -142,9 +150,9 @@ globalvar shopUnits = [
     # "%", #shrink
     "%", #objective
     "", # flight
-    "sec", # rapid
+    # "sec", # rapid
 ]
-# globalvar shopCamPosArr = [vect(67.5, 8.5, -27.3)]
+# change shoplen to a constant once gamemode is done
 #!define ShopLen len(shopItems)
 # shop prices & stat caps in balance.opy
 
@@ -157,8 +165,10 @@ enum MARKET:
     BARRIER,
     KNOCK,
     STEADFAST,
+    DAKKA,
     MOVESPEED
 
+globalvar marketers = []
 globalvar marketNo
 globalvar marketItems = [
     "{} caut-ton candy".format(abilityIconString(Hero.ANA, Button.ABILITY_2)), # reduce heal by up to 50% on hit, upgrade duration to 3s
@@ -168,17 +178,19 @@ globalvar marketItems = [
     "{} barriero rocher".format(abilityIconString(Hero.SYMMETRA, Button.ULTIMATE)), # barrier
     "{} kick kat".format(abilityIconString(Hero.DOOMFIST, Button.SECONDARY_FIRE)), # kb dealt
     "{} knockstoppers".format(abilityIconString(Hero.ORISA, Button.ABILITY_1)), # kb received
+    "{} pez minigun".format(abilityIconString(Hero.PHARAH, Button.ULTIMATE)),
     "{} fruit rollouts".format(abilityIconString(Hero.SOLDIER, Button.ABILITY_1)) # extra speed
 ]
 globalvar marketDescs = [
-    "hitting an enemy halves their healing received.\nlevel of this item is effect duration (seconds).\neffect doesn't stack but duration refreshes.",
+    "hitting an enemy halves their healing received.\neach level increases effect duration by 0.5s.\neffect doesn't stack but duration refreshes.",
     "shrink yourself.\neach level reduces your size by 1%.",
-    "hack enemies when you drop their health below half.\nlevel of this item is effect duration (seconds).",
-    "freeze nearby enemies when you deal a killing blow.\nlevel of this item is effect duration (seconds).",
+    "hack enemies when you drop their health below half.\neach level makes the hack last 0.5s longer.",
+    "freeze nearby enemies when you deal a killing blow.\neach level makes the freeze last 0.5s longer.",
     "make your shields & walls bigger.\neach level increases size by 1%.",
     "take better control of your personal space.\neach level increases knockback dealt by 1%.",
     "become resistant to knockbacks.\neach level decreases knockback received by 1%.",
-    "go even faster.\neach level adds 1% to your current movement speed."
+    "bring touhou to overwatch with [{}] + [{}].\nonly works for heroes with burst fire ({}, {}, {}, etc.)\neach level increases effect duration by 0.5s.".format(Button.INTERACT, Button.MELEE, heroIcon(Hero.GENJI), heroIcon(Hero.LUCIO), abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE), abilityIconString(Hero.DVA, Button.ABILITY_2)),
+    "go even faster.\neach level adds 1% to your\ncurrent movement speed."
 ]
 globalvar baseMarketStats = [
     0, # caut
@@ -188,6 +200,7 @@ globalvar baseMarketStats = [
     100, # barrier
     0, # kb
     0, # steadfast
+    0, # rapid
     0 # move
 ]
 globalvar marketQuips = [
@@ -203,6 +216,7 @@ globalvar marketQuips = [
     "don't eat it too quickly. why? uh... it's not because there could be razor blades or anything!"
 ]
 globalvar marketTime
+#!define MarketLen len(marketItems)
 
 globalvar i_init
 globalvar stealPortion
@@ -274,14 +288,15 @@ playervar marketStats = baseMarketStats
 playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
 playervar hudId
-# dakka
+# shop item vars
 playervar dakkaTime
-playervar dakkaFx # sparkle effect
+# playervar dakkaFx # sparkle effect, no longer used bc play effect is used in the dakka loop instead
+playervar cautTime
+playervar armorId
 # event
 playervar eventVar # use for any event
 # misc
-playervar blower # player who dealt final blow, used to separate final blow & elim events
-playervar cautTime
+playervar blower # player who dealt final blow, used to separate final blow & elim events.
 
 ### quests ###
 playervar questType = -1
