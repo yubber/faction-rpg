@@ -17,7 +17,7 @@ globalvar shopPrices = [
     # 2501000, # rapid
 ]
 globalvar statCaps = [
-    20000, # dmg
+    25000, # dmg
     1000, # ammo
     10000, # hp
     10000, # armor
@@ -66,3 +66,4 @@ globalvar marketStatCaps = [
 #!define BloodFormula (eventPlayer.getMaxHealth() * (0.065 if eventPlayer.faction == FACTIONS.BLOOD else 0.05) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult)
 # moon formula is money/s, not per tick
 #!define MoonFormula min(0.05*getTotalTimeElapsed(), 3500)
+#!define RebirthLevel
