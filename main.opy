@@ -1438,6 +1438,7 @@ rule "yeet debug bot":
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
 - more events (punching bag if slot available? faction point bonus?)
+- compensate for low faction membership in objectives
 - hide ana txt at far range
 - faction colors on overhead text
 - mercy abilities
@@ -1453,5 +1454,4 @@ balance
 - fix sombra invis hud opacity
 - earning $/s hud
 - catchup faction points for empty factions (do on player joining faction)
-- compensate for low faction membership in objectives
 */
