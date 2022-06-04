@@ -85,6 +85,7 @@ globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
 globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels. USED FOR TROON CHECK
 globalvar factLvUp = [2000, 2000, 2000, 2000]
+globalvar factColors = [Color.LIME_GREEN, Color.RED, Color.YELLOW, Color.SKY_BLUE]
 globalvar topPlayer
 
 ### shop ###

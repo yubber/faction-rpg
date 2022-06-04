@@ -45,6 +45,36 @@ settings {
 #!define ImportCode "GJWAZ"
 
 ### inits ###
+def pickFaction():
+	shut()
+	eventPlayer.disableHeroHUD()
+	wait()
+	eventPlayer.option = 0
+	eventPlayer.faction = -1
+	eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
+	waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
+	eventPlayer.faction = eventPlayer.option
+
+	if factMembers[eventPlayer.faction] <= 0:
+		# catchup code draft
+		factLevels[eventPlayer.faction] = max(factLevels[eventPlayer.faction], 0.7 * sorted(factLevels).last())
+		factMembers[eventPlayer.faction] = 1
+	else:
+		factMembers[eventPlayer.faction] = len([x for x in getAllPlayers() if x.faction == eventPlayer.faction])
+		factMembers[eventPlayer.faction]++
+
+	wait()
+	eventPlayer.stopCamera()
+	# eventPlayer.enableGamemodeHud()
+	eventPlayer.enableHeroHud()
+
+	if eventPlayer.faction == FACTIONS.GAIA:
+        eventPlayer.stats[STATS.DAMAGE] = 75
+        eventPlayer.stats[STATS.DEFENSE] = -75
+        eventPlayer.setDamageDealt(75)
+        eventPlayer.setDamageReceived(75)
+    smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
+
 def bossEventCleanup():
     # reverts boss effects. uses eventDetail as boss, not eventPlayer. does not reassign boss.
     removeHealthPool(eventDetail.eventVar)
@@ -198,7 +228,7 @@ rule "global init":
     for i_init in range(len(factSpawns)):
         # faction spawns
         createEffect(localPlayer, Effect.SPHERE,
-            Color.BLUE if localPlayer.faction == evalOnce(i_init) else Color.TEAM_2,
+            evalOnce(factColors[i_init]),
             evalOnce(factSpawns[i_init]), 3, EffectReeval.VISIBILITY_AND_COLOR)
         createInWorldText(localPlayer if localPlayer.faction != -1 else [],
             "your faction's base\nhold crouch to swap heroes".format(buttonString(Button.INTERACT))
@@ -317,7 +347,7 @@ rule "player init":
         "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
         "\n{} faction enemy".format(iconString(Icon.SKULL)) if localPlayer.faction in eventPlayer.enemies else ""),
         eventPlayer.getEyePosition() + Vector.UP,
-        1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, rgba(240,240,240,5 if (eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1()) else 150), SpecVisibility.ALWAYS)
+        1.2, Clip.SURFACES, WorldTextReeval.VISIBILITY_POSITION_STRING_AND_COLOR, factColors[eventPlayer.faction], SpecVisibility.ALWAYS)
     eventPlayer.hudId = getLastCreatedEntity()
     wait()
     if not eventPlayer.isDummy():
@@ -345,34 +375,8 @@ rule "player init":
             smallMessage(eventPlayer, "now it's time to pick a faction.")
             wait(2)
         # pick faction
-        wait()
-        eventPlayer.option = 0
-        eventPlayer.faction = -1
-        eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
-        waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
-        eventPlayer.faction = eventPlayer.option
-
-        if factMembers[eventPlayer.faction] <= 0:
-            # catchup code draft
-            factLevels[eventPlayer.faction] = max(factLevels[eventPlayer.faction], 0.7 * sorted(factLevels).last())
-            factMembers[eventPlayer.faction] = 1
-        else:
-            factMembers[eventPlayer.faction] = len([x for x in getAllPlayers() if x.faction == eventPlayer.faction])
-            factMembers[eventPlayer.faction]++
-
-        wait()
-        eventPlayer.stopCamera()
-        # eventPlayer.enableGamemodeHud()
-        eventPlayer.enableHeroHud()
+        pickFaction()
         resume()
-
-    if eventPlayer.faction == FACTIONS.GAIA:
-        eventPlayer.stats[STATS.DAMAGE] = 75
-        eventPlayer.stats[STATS.DEFENSE] = -75
-        eventPlayer.setDamageDealt(75)
-        eventPlayer.setDamageReceived(75)
-    smallMessage(eventPlayer, "you joined {}.".format(factNames[eventPlayer.faction]))
-
     chase(eventPlayer.cautTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
 
     # catchup
@@ -785,6 +789,7 @@ rule "rob bank":
 rule "flight":
 	@Event eachPlayer
 	@Condition eventPlayer.stats[STATS.FLIGHT]
+	@Condition (eventPlayer in shoppers) == (eventPlayer in marketers)
 	@Condition eventPlayer.isHoldingButton(Button.JUMP)
 	@Condition eventPlayer.isAlive()
 	do:
@@ -1261,8 +1266,24 @@ rule "respawn":
     wait(0.8)
     eventPlayer.forceButtonPress(Button.RELOAD)
 
-    if eventPlayer.money > (300 * eventPlayer.level): # shop reminder
+    if eventPlayer.money > (150 * eventPlayer.level): # shop reminder
         smallMessage(eventPlayer, "remember to visit the shop! (stand still and hold [{}] + [{}])".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT)))
+
+rule "rebirth":
+	@Event eachPlayer
+	@Condition eventPlayer.level > RebirthLevel
+	@Condition eventPlayer.isCommunicatingEmote()
+	@Condition distance(eventPlayer, RebirthPos) <= 2
+	eventPlayer.disableHeroHUD()
+	eventPlayer.setGravity(0)
+	playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.PURPLE, eventPlayer, 5)
+	playEffect(getAllPlayers(), DynamicEffect.BUFF_EXPLOSION_SOUND, Color.PURPLE, eventPlayer, 50)
+	eventPlayer.disableEnvironmentCollision(true)
+	eventPlayer.applyImpulse(Vector.UP, 20, Relativity.TO_WORLD, Impulse.CANCEL_CONTRARY_MOTION)
+	wait(5)
+	eventPlayer.stats = baseStats
+	eventPlayer.money = 0
+	pickFaction()
 
 ### faction specific behaviors ###
 rule "cult lifesteal & blood":
@@ -1387,6 +1408,7 @@ rule "no entering spawn":
     @Condition eventPlayer.isInSpawnRoom()
     kill(eventPlayer, null)
     smallMessage(eventPlayer, "{} you can't enter spawn.".format(iconString(Icon.NO)))
+
 rule "voice cracks (taken from YJ9W2 by zomg)":
     @Event eachPlayer
     while true:
@@ -1437,8 +1459,11 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
+- rebirth mechanic (at certain lvl, allow reset to ^ stat caps by 0.1 (each player has a statcap var, 0.1 init, +0.1 each prestige + faction change option))
 - more events (punching bag if slot available? faction point bonus?)
 - compensate for low faction membership in objectives
+- cryptos steal 2x $ from bank/init steal faster?
+- bank $ increase by up to 150/s?
 - hide ana txt at far range
 - faction colors on overhead text
 - mercy abilities
