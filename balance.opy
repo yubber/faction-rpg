@@ -3,7 +3,7 @@
 globalvar shopPrices = [
     150, # dmg
     30, # ammo
-    95, # hp
+    100, # hp
     80, # armor
     75, # heal
     45, # move
@@ -12,7 +12,7 @@ globalvar shopPrices = [
     175, # min ult
     750, # dmg received
     # 105000, # shrink
-    1200,  # faction
+    1050,  # faction
     2001000, # flight
     # 2501000, # rapid
 ]
@@ -28,7 +28,7 @@ globalvar statCaps = [
     70, # min ult
     -40, # dmg received
     # 40, # shrink
-    50000, # faction bonus
+    5000, # faction bonus
     1, # flight
     # 6 # rapid
 ]
@@ -39,8 +39,8 @@ globalvar marketPrices = [
     65000, # hack
     20000, # ice
     2000, # barrier
-    1200, # kb
-    1800, # steadfast
+    900, # kb
+    2400, # steadfast
     401000, # rapid
     95000 # move
 ]
@@ -51,19 +51,20 @@ globalvar marketStatCaps = [
     6, # freeze
     1000, # barrier
     500, # kb
-    0, # steadfast
+    100, # steadfast
     12, # dakka
     200 # move
 ]
 
-#!define FactCompensationMult max(1, 4 - factMembers[eventPlayer.faction])
+#!define FactCompensationMult max(0.6, 1 + 0.175 * (4 - factMembers[eventPlayer.faction]))
 #!define CryptoBaseMoney 50
 #!define CryptoAddMoney 45
 #!define BegMoney 100
 #!define RapidCd 35
-#!define QuestReward ((700 + 1.2 * eventPlayer.level) * (1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1) * MoneyMult)
+#!define QuestReward ((850 + 2 * eventPlayer.level) * ((0.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 0 ) + MoneyMult))
 # bloodformula does not sync with text on blood god or cult faction intro
-#!define BloodFormula (eventPlayer.getMaxHealth() * (0.065 if eventPlayer.faction == FACTIONS.BLOOD else 0.05) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult)
+#!define BloodFormula (eventPlayer.getMaxHealth() * (1.3*0.05 if eventPlayer.faction == FACTIONS.BLOOD else 0.05) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult)
 # moon formula is money/s, not per tick
-#!define MoonFormula min(0.05*getTotalTimeElapsed(), 3500)
-#!define RebirthLevel
+#!define MoonFormula min(ceil(bestPlayer.level / 50), 800)
+# update rebirth text too bc it uses localplayer
+#!define RebirthLevel (5000 + 30000 * eventPlayer.statLimit)

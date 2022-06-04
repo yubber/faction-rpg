@@ -11,6 +11,7 @@
 #!define CryptoPos vect(184.1, 13.8, 40.8)
 #!define CryptoRadius 5.7
 #!define BankPos vect(159.1, 10, -7.7)
+#!define RebirthPos vect(222.23, 15, 42.88)
 
 enum FACTIONS: # -1 for none, -2 for yet to skip/finish tutorial
     GAIA,
@@ -52,8 +53,8 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
 # market enum below
 
 ### tutorial ###
-globalvar tutoCams = [vect(118.43, 42.53, 58.05), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8), vect(127.41, 39.38, -35.03)]
-globalvar tutoLooks = [vect(108.66, 19.47, 15.22), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1), vect(107.7, 11, 3.4)]
+globalvar tutoCams = [vect(118.43, 42.53, 58.05), vect(108.8, 11.45, 1.64), vect(106.6, 16, 17.9), vect(165.2, 20.16, 35.53), vect(162.96, 15.15, 27.1), vect(140.6, 13.1, -6), vect(57.8, 9.3, -17.8), vect(127.41, 39.38, -35.03), vect(218.04, 15.5, 41.72)]
+globalvar tutoLooks = [vect(108.66, 19.47, 15.22), 4*Vector.UP + GoldPos, vect(131.1, 12, 26.1), vect(198.12, 15, 44.7), vect(166.4, 10.85, 39.6), vect(153.2, 10, -9.56), vect(59.73, 8, -27.1), vect(107.7, 11, 3.4), RebirthPos + Vector.UP]
 globalvar tutoStrings = [
     "welcome to the 131269th rpg gamemode in overwatch workshop.",
     "a good way to get money when you start is to be a sugar baby. be careful though, there'll be competition.",
@@ -62,7 +63,8 @@ globalvar tutoStrings = [
     "getting quests from sombra also gives you money. this scales with your level.",
     "increase your income by making progress for your faction.",
     "hold crouch + interact to enter the shop and upgrade your stats.",
-    "there's also another secret shop you can visit for some different perks..."
+    "there's also another secret shop you can visit for some different perks...",
+    "once you level up enough you can rebirth here."
 ]
 
 ### factions ###
@@ -85,8 +87,7 @@ globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
 globalvar factPoints = [0, 0, 0, 0] # basically xp. fixed scaling according to levels. USED FOR TROON CHECK
 globalvar factLvUp = [2000, 2000, 2000, 2000]
-globalvar factColors = [Color.LIME_GREEN, Color.RED, Color.YELLOW, Color.SKY_BLUE]
-globalvar topPlayer
+globalvar factColors = [Color.GREEN, Color.RED, Color.YELLOW, Color.SKY_BLUE]
 
 ### shop ###
 globalvar shopIcons = [
@@ -201,7 +202,7 @@ globalvar baseMarketStats = [
     0, # freeze
     100, # barrier
     0, # kb
-    -100, # steadfast
+    0, # steadfast
     0, # rapid
     0 # move
 ]
@@ -220,7 +221,7 @@ globalvar marketQuips = [
 globalvar marketTime
 #!define MarketLen len(marketItems)
 
-globalvar i_init
+globalvar i_init # also used when a player leaves
 globalvar stealPortion
 
 ### quests ###
@@ -281,6 +282,7 @@ globalvar eventTime
 
 ### general ###
 globalvar antiCrashActivated
+globalvar bestPlayer
 
 ### personal ###
 playervar level = 1
@@ -290,6 +292,8 @@ playervar marketStats = baseMarketStats
 playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
 playervar hudId
+playervar statLimit = 0.1
+
 # shop item vars
 playervar dakkaTime
 # playervar dakkaFx # sparkle effect, no longer used bc play effect is used in the dakka loop instead
