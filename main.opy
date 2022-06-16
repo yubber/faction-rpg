@@ -102,7 +102,7 @@ def pickFaction():
 		# catchup code draft
 		factLevels[eventPlayer.faction] = max(factLevels[eventPlayer.faction], 0.7 * sorted(factLevels).last())
 		factMembers[eventPlayer.faction] = 1
-        smallMessage(eventPlayer, "joined an empty faction. adjusting faction levels to catch up.")
+        # smallMessage(eventPlayer, "joined an empty faction. adjusting faction levels to catch up.")
 	else:
 		factMembers[eventPlayer.faction] = len([x for x in getAllPlayers() if x.faction == eventPlayer.faction])
 
@@ -419,14 +419,14 @@ rule "player init":
 
     for eventPlayer.option in range(getNumberOfPlayers(Team.ALL)):
         if (eventPlayer.option.money + eventPlayer.option.level * 100) < (5000 + bestPlayer.level * 60):
-            eventPlayer.option.money += (5000 + bestPlayer.level * 60) - (eventPlayer.option.money + eventPlayer.option.level * 100)
+            eventPlayer.option.money += (5000 + bestPlayer.level * 65) - (eventPlayer.option.money + eventPlayer.option.level * 100)
             smallMessage(eventPlayer.option, "received some money to catch up with the higher level players. keep going!")
         wait()
 
     eventPlayer.option = 0
 
     # catchup
-    eventPlayer.money = 5000 + bestPlayer.level * 60
+    eventPlayer.money = 5000 + bestPlayer.level * 65
 
     # event update
     switch eventType:
@@ -539,12 +539,12 @@ rule "shop refund":
     if eventPlayer.faction == FACTIONS.GAIA and eventPlayer.option in [STATS.DEFENSE, STATS.DAMAGE]:
         eventPlayer.money += shopPrices[eventPlayer.option] * abs(eventPlayer.stats[eventPlayer.option] - 75)
         eventPlayer.level -= shopPrices[eventPlayer.option] * abs(eventPlayer.stats[eventPlayer.option] - 75) / 100
-        eventPlayer.stats[eventPlayer.option] = -75 # check the sign or 0 damage taken incident
+        eventPlayer.stats[eventPlayer.option] = 75 if eventPlayer.option == STATS.DAMAGE else -75 # check the sign or 0 damage taken incident
     else:
+        eventPlayer.level -= shopPrices[eventPlayer.option] * abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option]) / 100
         eventPlayer.money += shopPrices[eventPlayer.option] * abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option])
-        eventPlayer.stats[eventPlayer.option] = baseStats[eventPlayer.option]
-        eventPlayer.level -= abs((eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option]) * shopPrices[eventPlayer.option] / 100)
-        smallMessage(eventPlayer, "debug: -{} lvs".format(abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option]) * shopPrices[eventPlayer.option] / 100))
+        eventPlayer.stats[eventPlayer.option] = baseStats[eventPlayer.option] # put after level change
+        smallMessage(eventPlayer, "debug: -{} lvs".format(abs(eventPlayer.stats[eventPlayer.option] - baseStats[eventPlayer.option]) * shopPrices[eventPlayer.option]))
     smallMessage(eventPlayer, "upgrade refunded.")
 
 rule "shop leave":
@@ -689,13 +689,14 @@ rule "moon claim":
     moonOwner = eventPlayer
     smallMessage(eventPlayer, "{} at your service. +${}, 2% ult, 10hp /s".format(iconString(Icon.MOON), MoonFormula))
 
-rule "moon reward":
+rule "moon reward + bank increase":
     @Condition isGameInProgress()
-    @Condition moonOwner != null
     do:
         moonOwner.setUltCharge(1 + moonOwner.getUltCharge())
         heal(moonOwner, null, 5)
         moonOwner.money += 0.5*MoonFormula # values also shown in moon claim text
+
+        factPoints[FACTIONS.RICH] += min(400, 0.05* factPoints[FACTIONS.RICH])/2
         wait(0.5)
     while RULE_CONDITION
 
@@ -1162,7 +1163,9 @@ rule "gen events":
                     bossEventSetup()
                     break
                 case EVENTS.WALLHACKS:
-                    getAllPlayers().startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
+                    # outline doesn't work on getallplayers
+                    for eventDetail in range(getNumberOfPlayers(Team.ALL)):
+                        getAllPlayers()[eventDetail].startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
                     eventText = "event: {} wallhacks".format(abilityIconString(Hero.WIDOWMAKER, Button.ULTIMATE))
                     break
                 case EVENTS.HERO:
@@ -1241,6 +1244,9 @@ rule "final blow handling":
 
 	# rich money bonus
 	if eventPlayer.faction == FACTIONS.RICH:
+        factPoints[eventPlayer.faction] += 0.1 * eventPlayer.money
+        factPoints[eventPlayer.faction] += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
+        * 0.4) * (eventDetail if eventType == EVENTS.KILL else 1)
 		eventPlayer.money *= 1.1
     # money
     eventPlayer.money += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
@@ -1317,6 +1323,8 @@ rule "respawn":
 
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
         eventPlayer.setUltCharge(100)
+    elif eventPlayer.getCurrentHero() == Hero.MERCY:
+        smallMessage(eventPlayer, "{} flings you where you're facing, {} gives you brief invulnerability.".format(abilityIconString(Hero.MERCY, Button.ABILITY_1), abilityIconString(Hero.MERCY, Button.ABILITY_2)))
 
     wait(0.8)
     eventPlayer.forceButtonPress(Button.RELOAD)
@@ -1373,7 +1381,7 @@ rule "gaia healing":
     wait(0.4, Wait.ABORT_WHEN_FALSE)
     # @Condition distance(eventPlayer, getClosestPlayer(eventPlayer, Team.ALL)) <= 3
     smallMessage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), "{}{} is healing you. stay near them!".format(heroIcon(eventPlayer.getCurrentHero()), eventPlayer))
-    while eventPlayer.isCrouching() and eventPlayer.isAlive():
+    while eventPlayer.isHoldingButton(Button.CROUCH) and eventPlayer.isAlive():
         damage(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), eventPlayer, 0.01)
         heal(getPlayersInRadius(eventPlayer, 3, Team.ALL, LosCheck.SURFACES).exclude(eventPlayer), eventPlayer, 12)
         heal(eventPlayer, eventPlayer, 4)
@@ -1403,6 +1411,26 @@ rule "crypto melee":
     # @Condition eventPlayer != victim
     victim.setStatusEffect(eventPlayer, Status.HACKED, 1.5)
 ### misc ###
+rule "mercy ga":
+    @Event eachPlayer
+    @Condition Hero.MERCY in [eventPlayer.getHeroOfDuplication(), eventPlayer.getCurrentHero()]
+    @Condition eventPlayer.isHoldingButton(Button.ABILITY_1)
+    @Condition eventPlayer.isAlive()
+    @Condition eventPlayer in shoppers == eventPlayer in marketers
+    @Condition eventPlayer.getAbilityCooldown(Button.ABILITY_1) == 0
+    eventPlayer.applyImpulse(Vector.FORWARD, 10, Relativity.TO_PLAYER, Impulse.CANCEL_CONTRARY_MOTION)
+    eventPlayer.setAbilityCooldown(Button.ABILITY_1, 5)
+
+rule "mercy rez":
+    @Event eachPlayer
+    @Condition Hero.MERCY in [eventPlayer.getHeroOfDuplication(), eventPlayer.getCurrentHero()]
+    @Condition eventPlayer.isHoldingButton(Button.ABILITY_2)
+    @Condition eventPlayer.isAlive()
+    @Condition eventPlayer in shoppers == eventPlayer in marketers
+    @Condition eventPlayer.getAbilityCooldown(Button.ABILITY_2) == 0
+    eventPlayer.setStatusEffect(eventPlayer, Status.PHASED_OUT, 1)
+    playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.YELLOW, eventPlayer, 1.5)
+    eventPlayer.setAbilityCooldown(Button.ABILITY_2, 20)
 rule "damage when stat > 10000":
     @Event playerDealtDamage
     @Condition eventDamage > 0
@@ -1537,24 +1565,16 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
-- can't heal while in blood god? or just hps lower
-- why does refund level show as 0
-- fix dva gaia heal not activating in mech
-- for loop for outline event (not working on getallplayers)
 - more fancy descs for bourgeois & crypto
-- catchup money for when money given to new players > level + money of existing player
 - more events (punching bag if slot available? faction point bonus?)
-- compensate for low faction membership in objectives
 - cryptos steal 2x $ from bank/init steal faster?
-- bank $ increase by up to 150/s?
 - hide ana txt at far range
 - faction colors on overhead text
-- mercy abilities
 - screenshots for workshop.codes
 
 balance
-- exponential growth of catchup $ amount
-- help crypto & bourgeois
+- can't heal while in blood god? or just hps lower
+- help bourgeois
 - how to reduce gap between players? steal less if level higher?
 - bank & robbing balance
 - echo ult clip size update

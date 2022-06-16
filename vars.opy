@@ -74,13 +74,13 @@ globalvar factSpawns # factSpawns is in global init rule to fight for blahaj
 globalvar factGoalStrings = [
     "kill blizzcoin miners and faction enemies, and heal the wounded.",
     "blood for the blood god.",
-    "hoard money in the bank and defend it from robbers.",
+    "commit acts of violence, hoard money in the bank and defend it from robbers.",
     "advance sombra's nefarious agenda."
 ] # USED FOR TROON CHECK
 globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 30% more money.\nhalf of damage dealt contributes to your faction goal.",
-    "when you get a killing blow your held money increases by 10% and you earn 40% more money,\nbut enemies steal 50% more money from killing you if you have more money than them.",
+    "when you get a killing blow your held money increases by 10% and you earn 40% more money.\nall this extra money is also added to the bank.\nhowever enemies steal 50% more money from killing you if you have more money than them.\nbank interest is 10%/s up to $400/s.",
     "gain 50% more money from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
 ]
 globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some reason
