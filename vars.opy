@@ -12,6 +12,7 @@
 #!define CryptoRadius 5.7
 #!define BankPos vect(159.1, 10, -7.7)
 #!define RebirthPos vect(222.23, 15, 42.88)
+#!define BaseStatCap 0.4
 
 enum FACTIONS: # -1 for none, -2 for yet to skip/finish tutorial
     GAIA,
@@ -74,14 +75,14 @@ globalvar factSpawns # factSpawns is in global init rule to fight for blahaj
 globalvar factGoalStrings = [
     "kill blizzcoin miners and faction enemies, and heal the wounded.",
     "blood for the blood god.",
-    "commit acts of violence, hoard money in the bank and defend it from robbers.",
+    "be violent, hoard money in the bank and defend it from robbers.",
     "advance sombra's nefarious agenda."
 ] # USED FOR TROON CHECK
 globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 30% more money.\nhalf of damage dealt contributes to your faction goal.",
     "when you get a killing blow your held money increases by 10% and you earn 40% more money.\nall this extra money is also added to the bank.\nhowever enemies steal 50% more money from killing you if you have more money than them.\nbank interest is 10%/s up to $400/s.",
-    "gain 50% more money from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly."
+    "gain 50% more money from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly.\ndelay before robbing the bank is reduced to 2s."
 ]
 globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some reason
 globalvar factLevels = [0, 0, 0, 0] # 1 = +10% income
@@ -292,7 +293,7 @@ playervar marketStats = baseMarketStats
 playervar option = 0 # also used for tutorial i in for loop. sorry
 playervar buyqty # also used for blood time. sorry
 playervar hudId
-playervar statLimit = 0.1
+playervar statLimit = BaseStatCap
 
 # shop item vars
 playervar dakkaTime

@@ -46,6 +46,7 @@ settings {
 
 ### inits ###
 def shut():
+    wait()
     eventPlayer.cancelPrimaryAction()
     eventPlayer.disallowButton(Button.INTERACT)
     eventPlayer.disallowButton(Button.PRIMARY_FIRE)
@@ -208,11 +209,11 @@ rule "global init":
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "bank | ${} / {}\n{}".format(factPoints[FACTIONS.RICH], factLvUp[FACTIONS.RICH],
-        "stand here to steal (40% / 3s, 10s before first steal)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+        "stand here to steal (40% / 2s, 6s before first steal)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### rebirth ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.WHITE, RebirthPos, 2, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "{} emote here to rebirth (min. level {})\nraise max shop stats and reselect faction,\nbut reset money & level, and halve ana upgrade levels\n\ncurrent stat caps: {}% of maximum\n+10% each rebirth, +5% after reaching 100%".format(abilityIconString(Hero.ZENYATTA, Button.ULTIMATE), 150000 * localPlayer.statLimit, localPlayer.statLimit * 100), RebirthPos + Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, rgb(
+    createInWorldText(getAllPlayers(), "{} emote here to rebirth (min. level {})\nraise max shop stats and reselect faction,\nbut reset money & level, and halve ana upgrade levels\n\ncurrent stat caps: {}% of maximum\n+10% each rebirth, +5% after reaching 100%".format(abilityIconString(Hero.ZENYATTA, Button.ULTIMATE), 4000 + 25000 * localPlayer.statLimit, localPlayer.statLimit * 100), RebirthPos + Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_STRING_AND_COLOR, rgb(
         128 + 127 * cosDeg(getTotalTimeElapsed() * 100),
         128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 120),
         128 + 127 * cosDeg((getTotalTimeElapsed() * 100) + 240)
@@ -374,7 +375,7 @@ rule "global init":
 rule "player init":
     @Event eachPlayer
     @Condition eventPlayer.hasSpawned()
-    @Condition eventPlayer.statLimit == 0.1
+    @Condition eventPlayer.statLimit == BaseStatCap
     @Condition eventPlayer.faction == -1
     wait()
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
@@ -394,7 +395,7 @@ rule "player init":
         # tutorial
         eventPlayer.faction = -2
         eventPlayer.startCamera(vect(-24.8, -0.1, 20.2), vect(-634.6, -41.2, 811.7), 15)
-        wait(0.080)
+        wait(0.16)
         waitUntil(eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE), 9999)
         if eventPlayer.isHoldingButton(Button.PRIMARY_FIRE):
             # show tuto
@@ -691,6 +692,7 @@ rule "moon claim":
 
 rule "moon reward + bank increase":
     @Condition isGameInProgress()
+    @Condition moonOwner != null
     do:
         moonOwner.setUltCharge(1 + moonOwner.getUltCharge())
         heal(moonOwner, null, 5)
@@ -829,11 +831,13 @@ rule "rob bank":
 	@Condition distance(eventPlayer, BankPos) < 5.5
 	@Condition factPoints[FACTIONS.RICH] > 0
     wait(0.16, Wait.ABORT_WHEN_FALSE)
+    damage(eventPlayer, null, 1)
 	smallMessage(eventPlayer, "robbing the bank. careful, the bourgeoisie have been alerted!")
 	bigMessage([x for x in getAllPlayers() if x.faction == FACTIONS.RICH], "{} the bank is being robbed. defend it!".format(iconString(Icon.WARNING)))
-	wait(7, Wait.ABORT_WHEN_FALSE)
+	if eventPlayer.faction != FACTIONS.SOMBRUH:
+        wait(4, Wait.ABORT_WHEN_FALSE)
 	while (distance(eventPlayer, BankPos) < 5.5) and (factPoints[FACTIONS.RICH] > 0):
-		wait(3, Wait.ABORT_WHEN_FALSE)
+		wait(2, Wait.ABORT_WHEN_FALSE)
         smallMessage(eventPlayer, "stole ${}".format(0.4 * factPoints[FACTIONS.RICH]))
         eventPlayer.money += 0.4 * factPoints[FACTIONS.RICH]
         factPoints[FACTIONS.RICH] *= 0.6
@@ -1065,6 +1069,7 @@ rule "black market leave":
     wait()
     marketers.remove(eventPlayer)
     smallMessage(eventPlayer, "{} {}".format(heroIcon(Hero.ANA), random.choice(marketQuips)))
+    eventPlayer.communicate(Comms.GOODBYE)
     setMarketStats()
     eventPlayer.teleport(vect(88.51, 7.03, -9.72))
     eventPlayer.setFacing(Vector.RIGHT, Relativity.TO_WORLD)
@@ -1074,15 +1079,15 @@ rule "black market buy":
     @Condition eventPlayer.isHoldingButton(Button.JUMP)
     @Condition eventPlayer in marketers
     do:
+        if eventPlayer.option != marketNo:
+            playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
+            smallMessage(eventPlayer, "{} i'm not selling that yet.".format(heroIcon(Hero.ANA)))
+            return
+
 		# message if can't buy 1
         if eventPlayer.money < marketPrices[marketNo]:
             playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
             smallMessage(eventPlayer, "{} sorry, but my candy is too expensive for you, traveller.".format(heroIcon(Hero.ANA)))
-            return
-
-        if eventPlayer.option != marketNo:
-            playEffect(eventPlayer, DynamicEffect.DEBUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 50)
-            smallMessage(eventPlayer, "{} i'm not selling that yet.".format(heroIcon(Hero.ANA)))
             return
 
         if eventPlayer.marketStats[marketNo] >= marketStatCaps[marketNo]:
@@ -1284,16 +1289,16 @@ rule "final blow handling":
     if false:
         lbl_0:
         eventPlayer.money += MoneyMult * victim.level * 3
-        factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 2.5 * FactCompensationMult
+        factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 2.5
 
     ### enemy ###
     # killed enemy
     if eventPlayer.faction in victim.enemies:
         if eventPlayer.faction != victim.faction:
-            smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(MoneyMult * victim.level * 5, FactPointsMult * victim.level * 2))
-            factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 2 * FactCompensationMult
+            smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(MoneyMult * victim.level * 1.5, FactPointsMult * victim.level * 0.75))
+            factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 0.75
         else:
-            smallMessage(eventPlayer, "killed a faction enemy. +${}".format(MoneyMult * victim.level * 5))
+            smallMessage(eventPlayer, "killed a faction enemy. +${}".format(MoneyMult * victim.level * 1.5))
         goto lbl_1
     # killed innocent
     else:
@@ -1305,7 +1310,7 @@ rule "final blow handling":
         lbl_1:
         smallMessage(victim, "you are no longer wanted by {}.".format(factNames[eventPlayer.faction]))
         victim.enemies.remove(eventPlayer.faction)
-        eventPlayer.money += MoneyMult * victim.level * 5
+        eventPlayer.money += MoneyMult * victim.level * 1.5
 
 rule "respawn":
     @Event eachPlayer
@@ -1313,6 +1318,7 @@ rule "respawn":
     @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.isAlive()
     @Condition eventPlayer.faction != -1
+    @Condition not eventPlayer in marketers
     # @Condition eventPlayer.isInAlternateForm()
     # @Condition eventPlayer.isOnGround() # cheesy detect spawned vs demeched
     wait(0.048)
@@ -1339,8 +1345,8 @@ rule "rebirth":
     if eventPlayer.level < RebirthLevel:
         smallMessage(eventPlayer, "your level isn't high enough for rebirth.")
         return
-    if eventPlayer.statLimit == 1:
-        smallMessage(eventPlayer, "you have attained the maximum number of rebirths. congratulations!")
+    # if eventPlayer.statLimit == 1:
+    #     smallMessage(eventPlayer, "you have attained the maximum number of rebirths. congratulations!")
         # option to declare victory? now it's infinite
 	eventPlayer.disableHeroHUD()
 	eventPlayer.setGravity(0)
@@ -1359,7 +1365,7 @@ rule "rebirth":
     wait(1)
     if eventPlayer == bestPlayer:
         bestPlayer = sorted(getAllPlayers(), lambda x: x.level).last()
-    eventPlayer.statLimit += 0.1 if eventPlayer.statLimit < 1 else 0.05
+    eventPlayer.statLimit += 0.2 if eventPlayer.statLimit < 1 else 0.05
     eventPlayer.enableEnvironmentCollision()
     setShopStats()
     setMarketStats()
@@ -1436,16 +1442,14 @@ rule "damage when stat > 10000":
     @Condition eventDamage > 0
     @Condition eventAbility != null
     @Condition eventPlayer.stats[STATS.DAMAGE] > 10000
-    damage(victim, eventPlayer, eventDamage * (eventPlayer.stats[STATS.DAMAGE] - 10000))
-    # null to avoid looping
+    damage(victim, eventPlayer, eventDamage * (eventPlayer.stats[STATS.DAMAGE] - 10000)/100)
 rule "heal when stat > 10000":
     @Event playerReceivedHealing
     @Condition eventHealing > 0
     @Condition eventAbility != null or eventWasHealthPack
     @Condition eventPlayer.stats[STATS.HEALING] > 1000
     # heal(eventPlayer, healer, eventHealing * (10000 - eventPlayer.stats[STATS.HEALING]) / eventPlayer.stats[STATS.HEALING])
-    heal(eventPlayer, eventPlayer, eventHealing * (eventPlayer.stats[STATS.HEALING] - 1000)/1000 )
-    # null to avoid looping
+    heal(eventPlayer, healer, eventHealing * (eventPlayer.stats[STATS.HEALING] - 1000)/1000 )
 rule "big door to lumerico barrier":
     @Event eachPlayer
     @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) <= 3.2
@@ -1483,6 +1487,9 @@ rule "player leave cleanup":
 	destroyEffect(eventPlayer.bloodFx)
 	stopDoT(eventPlayer.bloodDoT)
     destroyInWorldText(eventPlayer.hudId)
+
+    if eventPlayer == moonOwner:
+        moonOwner = null
 
     if eventPlayer == bestPlayer:
         bestPlayer = sorted(getAllPlayers(), lambda x: x.level).last()
@@ -1565,11 +1572,14 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
+- define formulae for elim money & fact points
+- fix wallhack event
+- first steal text for cryptos
+- fact point catchup even when not empty
+- adjust rewards for quests
 - more fancy descs for bourgeois & crypto
 - more events (punching bag if slot available? faction point bonus?)
-- cryptos steal 2x $ from bank/init steal faster?
 - hide ana txt at far range
-- faction colors on overhead text
 - screenshots for workshop.codes
 
 balance

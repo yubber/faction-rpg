@@ -17,7 +17,7 @@ globalvar shopPrices = [
     # 2501000, # rapid
 ]
 globalvar statCaps = [
-    25000, # dmg
+    17500, # dmg
     1000, # ammo
     10000, # hp
     10000, # armor
@@ -35,14 +35,14 @@ globalvar statCaps = [
 
 globalvar marketPrices = [
     2500, # caut
-    150000, # shrink
-    65000, # hack
+    80000, # shrink
+    40000, # hack
     20000, # ice
     2000, # barrier
     900, # kb
     2400, # steadfast
-    401000, # rapid
-    95000 # move
+    125000, # rapid
+    65000 # move
 ]
 globalvar marketStatCaps = [
     6, # caut
@@ -56,7 +56,9 @@ globalvar marketStatCaps = [
     200 # move
 ]
 
-#!define FactCompensationMult max(0.6, 1 + 0.175 * (4 - factMembers[eventPlayer.faction]))
+# deprecated. used to be used to make weaker factions progress faster.
+#!define FactCompensationMult 1
+#max(0.6, 1 + 0.175 * (4 - factMembers[eventPlayer.faction]))
 #!define CryptoBaseMoney 50
 #!define CryptoAddMoney 45
 #!define BegMoney 100
@@ -66,5 +68,9 @@ globalvar marketStatCaps = [
 #!define BloodFormula (eventPlayer.getMaxHealth() * (1.3*0.05 if eventPlayer.faction == FACTIONS.BLOOD else 0.05) * (eventDetail if eventType == EVENTS.BLOOD else 1) * MoneyMult)
 # moon formula is money/s, not per tick
 #!define MoonFormula min(ceil(bestPlayer.level / 50), 800)
+
 # update rebirth text too bc it uses localplayer
-#!define RebirthLevel (5000 + 30000 * eventPlayer.statLimit)
+#!define RebirthLevel (4000 + 25000 * eventPlayer.statLimit)
+
+# base stat cap is defined in vars.opy
+#!define RebirthBonus 0.2
