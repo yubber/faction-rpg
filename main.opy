@@ -1171,6 +1171,7 @@ rule "gen events":
                     # outline doesn't work on getallplayers
                     for eventDetail in range(getNumberOfPlayers(Team.ALL)):
                         getAllPlayers()[eventDetail].startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
+                        smallMessage(hostPlayer, "debug: outline for {} (index {})".format(getAllPlayers()[eventDetail], eventDetail))
                     eventText = "event: {} wallhacks".format(abilityIconString(Hero.WIDOWMAKER, Button.ULTIMATE))
                     break
                 case EVENTS.HERO:
@@ -1337,6 +1338,13 @@ rule "respawn":
 
     if eventPlayer.money > (150 * eventPlayer.level): # shop reminder
         smallMessage(eventPlayer, "remember to visit the shop! (stand still and hold [{}] + [{}])".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT)))
+
+    wait()
+
+    # fact points catchup
+    if factPoints[eventPlayer.faction] < 0.7 * sorted(factPoints).last():
+        smallMessage([x for x in getAllPlayers() if x.faction == eventPlayer.faction], "received a faction points bonus to catch up.")
+        factLevels[eventPlayer.faction] = 0.7 * sorted(factPoints).last()
 
 rule "rebirth":
 	@Event eachPlayer
