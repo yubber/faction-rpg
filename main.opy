@@ -209,7 +209,7 @@ rule "global init":
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
     createInWorldText(getAllPlayers(), "bank | ${} / {}\n{}".format(factPoints[FACTIONS.RICH], factLvUp[FACTIONS.RICH],
-        "stand here to steal (40% / 2s, 6s before first steal)" if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+        "stand here to steal (40% / 2s, {}s before first steal)".format(6 if localPlayer.faction != FACTIONS.SOMBRUH else 2) if localPlayer.faction != FACTIONS.RICH else "buy {} {} to add money\nkeep other factions away".format(shopIcons[STATS.OBJECTIVE], shopItems[STATS.OBJECTIVE])), BankPos + 3*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### rebirth ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.WHITE, RebirthPos, 2, EffectReeval.VISIBILITY)
@@ -653,7 +653,7 @@ rule "beg":
     @Condition eventPlayer.isAlive()
     @Condition distance(GoldPos, eventPlayer.getPosition()) <= GoldRadius
     do:
-        eventPlayer.money += MoneyMult * BegMoney / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
+        eventPlayer.money += MoneyMult * BegMoney * (eventDetail if eventType == EVENTS.BEG else 1) / len(getPlayersInRadius(GoldPos, GoldRadius, Team.ALL, LosCheck.OFF))
         playEffect(eventPlayer, DynamicEffect.RING_EXPLOSION, Color.YELLOW, eventPlayer.getPosition() + Vector.UP, 2)
         playEffect(eventPlayer, DynamicEffect.BUFF_IMPACT_SOUND, Color.WHITE, eventPlayer, 10)
         wait(1)
@@ -1159,7 +1159,7 @@ rule "gen events":
                     eventText = "event: {} kills grant {}x money!".format(iconString(Icon.SKULL), eventDetail)
                     break
                 case EVENTS.GRAVITY:
-                    eventDetail = random.randint(20, 60)
+                    eventDetail = random.randint(10, 50)
                     eventText = "event: {} gravity is {}%".format(abilityIconString(Hero.ECHO, Button.JUMP), eventDetail)
                     getAllPlayers().setGravity(eventDetail) # also used in player init
                     break
@@ -1167,11 +1167,17 @@ rule "gen events":
                     eventDetail = sorted(getAllPlayers(), lambda x: x.level).last() # target
                     bossEventSetup()
                     break
+                case EVENTS.BEG:
+                    eventDetail = random.uniform(1, 5)
+                    eventText = "event: {} begging gives {}x money!".format(iconString(Icon.HAPPY), eventDetail)
+                    break
                 case EVENTS.WALLHACKS:
                     # outline doesn't work on getallplayers
                     for eventDetail in range(getNumberOfPlayers(Team.ALL)):
-                        getAllPlayers()[eventDetail].startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
-                        smallMessage(hostPlayer, "debug: outline for {} (index {})".format(getAllPlayers()[eventDetail], eventDetail))
+                        createIcon(getAllPlayers().exclude(getAllPlayers()[eventDetail]), getAllPlayers()[eventDetail].getEyePosition() + Vector.UP, Icon.EYE, IconReeval.VISIBILITY_AND_POSITION, Color.TEAM_1, false)
+                        getAllPlayers()[eventDetail].eventVar = getLastCreatedEntity()
+                        # getAllPlayers()[eventDetail].startForcingOutlineFor(getAllPlayers(), true, Color.TEAM_2, OutlineVisibility.DEFAULT)
+                        # smallMessage(hostPlayer, "debug: outline for {} (index {})".format(getAllPlayers()[eventDetail], eventDetail))
                     eventText = "event: {} wallhacks".format(abilityIconString(Hero.WIDOWMAKER, Button.ULTIMATE))
                     break
                 case EVENTS.HERO:
@@ -1225,8 +1231,8 @@ rule "elim handling + interval bug checks":
     @Condition eventPlayer != victim
     @Condition victim.blower != eventPlayer
     wait(0.08, Wait.ABORT_WHEN_FALSE)
-    smallMessage(eventPlayer, "elimination +${}".format(max(300, 0.5*victim.level) * MoneyMult))
-    eventPlayer.money += max(300, 0.5*victim.level) * MoneyMult
+    smallMessage(eventPlayer, "elimination +${}".format(ElimPay))
+    eventPlayer.money += ElimPay
     victim.blower = null
 
     # troon check
@@ -1235,7 +1241,7 @@ rule "elim handling + interval bug checks":
         smallMessage(getAllPlayers(), "{} this gamemode has been tampered with. use import code {}".format(abilityIconString(Hero.SOMBRA, Button.ULTIMATE), ImportCode))
         wait(3)
         while true:
-            i_init = raycast(random.choice(getAllPlayers()), random.choice(getAllPlayers()), [], [], true).getNormal()
+            i_init = raycast(bestPlayer, hostPlayer, [], [], true).getNormal()
 
 rule "final blow handling":
     @Event playerDealtFinalBlow
@@ -1251,12 +1257,10 @@ rule "final blow handling":
 	# rich money bonus
 	if eventPlayer.faction == FACTIONS.RICH:
         factPoints[eventPlayer.faction] += 0.1 * eventPlayer.money
-        factPoints[eventPlayer.faction] += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
-        * 0.4) * (eventDetail if eventType == EVENTS.KILL else 1)
+        factPoints[eventPlayer.faction] += KillPay
 		eventPlayer.money *= 1.1
     # money
-    eventPlayer.money += ((max(900, 2*victim.level)*MoneyMult + victim.money * stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1))
-        * (1.4 if eventPlayer.faction == FACTIONS.RICH else 1)) * (eventDetail if eventType == EVENTS.KILL else 1) # bonuses to both steal portion & base money increase
+    eventPlayer.money += KillPay
 
     victim.money *= 1 - stealPortion * (1.5 if victim.faction == FACTIONS.RICH and victim.money > eventPlayer.money else 1)
 
@@ -1267,15 +1271,15 @@ rule "final blow handling":
     # boss event
     if eventType == EVENTS.BOSS:
         if eventPlayer == eventDetail: # boss got kill
-            smallMessage(eventPlayer, "got kill as boss. +${}".format(3500 * MoneyMult))
-            eventPlayer.money += 3500 * MoneyMult
+            smallMessage(eventPlayer, "got kill as boss. +${}".format(BossPay))
+            eventPlayer.money += BossPay
         elif victim == eventDetail: # boss killed
             bossEventCleanup()
             wait()
-            eventPlayer.money += eventDetail.level * 3 * MoneyMult
-            eventDetail.money -= eventDetail.level * 0.7
-            smallMessage(eventDetail, "you are no longer the boss. lost ${}".format(eventDetail.level * 0.7))
-            smallMessage(eventPlayer, "you are the new boss! earned ${}.".format(eventDetail.level * 4))
+            eventPlayer.money += BossKilledPay
+            eventDetail.money -= BossDiePenalty
+            smallMessage(eventDetail, "you are no longer the boss. lost ${}".format(BossDiePenalty))
+            smallMessage(eventPlayer, "you are the new boss! earned ${}.".format(BossKilledPay))
             wait()
             eventDetail = eventPlayer
             wait()
@@ -1283,23 +1287,25 @@ rule "final blow handling":
 
     # robber or miner
     if (victim.mineFx != null and eventPlayer.faction == FACTIONS.GAIA):
-        smallMessage(eventPlayer, "killed a blizzcoin miner. +${}, {} faction points".format(MoneyMult * victim.level * 3, FactPointsMult * victim.level))
+        smallMessage(eventPlayer, "killed a blizzcoin miner. +${}, {} faction points".format(NaughtyPay, NaughtyPoints))
+        goto lbl_0
     elif (eventPlayer.faction == FACTIONS.RICH and (victim.faction != FACTIONS.RICH) and distance(victim, BankPos) < 5.5):
-        smallMessage(eventPlayer, "killed a bank robber. +${}, {} faction points".format(MoneyMult * victim.level * 3, FactPointsMult * victim.level))
+        smallMessage(eventPlayer, "killed a bank robber. +${}, {} faction points".format(NaughtyPay, NaughtyPoints))
+        goto lbl_0
 
     if false:
         lbl_0:
-        eventPlayer.money += MoneyMult * victim.level * 3
-        factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 2.5
+        eventPlayer.money += NaughtyPay
+        factPoints[eventPlayer.faction] += NaughtyPoints
 
     ### enemy ###
     # killed enemy
     if eventPlayer.faction in victim.enemies:
         if eventPlayer.faction != victim.faction:
-            smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(MoneyMult * victim.level * 1.5, FactPointsMult * victim.level * 0.75))
-            factPoints[eventPlayer.faction] += FactPointsMult * victim.level * 0.75
+            smallMessage(eventPlayer, "killed a faction enemy. +${}, {} faction points".format(RevengePay, RevengePoints))
+            factPoints[eventPlayer.faction] += RevengePoints
         else:
-            smallMessage(eventPlayer, "killed a faction enemy. +${}".format(MoneyMult * victim.level * 1.5))
+            smallMessage(eventPlayer, "killed a faction enemy. +${}".format(RevengePay * 0.6))
         goto lbl_1
     # killed innocent
     else:
@@ -1311,7 +1317,7 @@ rule "final blow handling":
         lbl_1:
         smallMessage(victim, "you are no longer wanted by {}.".format(factNames[eventPlayer.faction]))
         victim.enemies.remove(eventPlayer.faction)
-        eventPlayer.money += MoneyMult * victim.level * 1.5
+        eventPlayer.money += RevengePay
 
 rule "respawn":
     @Event eachPlayer
@@ -1580,10 +1586,8 @@ rule "yeet debug bot":
     @Condition attacker == hostPlayer
     destroyDummy(Team.ALL, eventPlayer.getSlot())
 /*2do
-- define formulae for elim money & fact points
+- better crypto & moon event
 - fix wallhack event
-- first steal text for cryptos
-- fact point catchup even when not empty
 - adjust rewards for quests
 - more fancy descs for bourgeois & crypto
 - more events (punching bag if slot available? faction point bonus?)

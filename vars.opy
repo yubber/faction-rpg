@@ -49,6 +49,7 @@ enum EVENTS: # -1 for no event but it's not using this enum. oops
     BLOOD,
     BOSS,
     WALLHACKS,
+    BEG,
     HERO # must be last
 
 # market enum below
