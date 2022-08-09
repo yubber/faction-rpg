@@ -231,7 +231,7 @@ rule "global init":
     factPoints.append(getLastCreatedEntity())
 
     ### time HUD + shop prompt ###
-    hudSubtext(getAllPlayers(), "{}:{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+    hudSubtext(getAllPlayers(), "{}:{}{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", 0 if getTotalTimeElapsed()/60 % 60 < 10 else l"", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
     hudSubheader(getAllPlayers(), "stand still while holding [{}] and [{}] to enter the shop\nuse import code {} for the latest version\n\n".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT), ImportCode), HudPosition.LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
     wait()
@@ -381,7 +381,7 @@ rule "player init":
     if eventPlayer == hostPlayer and "{}".format(eventPlayer) == "OMGIDIED":
         hudSubheader(eventPlayer, eventPlayer.getPosition(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
         hudSubheader(eventPlayer, eventPlayer.getFacingDirection(), HudPosition.RIGHT, 0, Color.GREEN, HudReeval.STRING)
-    eventPlayer.disableGamemodeHud() # gamemode hud used for events
+    eventPlayer.disableGamemodeHud()
     eventPlayer.disableHeroHUD()
     createInWorldText([] if eventPlayer.getCurrentHero() == Hero.SOMBRA and eventPlayer.isUsingAbility1() else getAllPlayers().exclude(eventPlayer),
         "lv {} | ${}\n{}{}".format(eventPlayer.level, eventPlayer.money, factNames[eventPlayer.faction],
