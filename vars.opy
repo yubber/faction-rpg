@@ -82,7 +82,7 @@ globalvar factGoalStrings = [
 globalvar factDescs = [ # default initial stat overrides (eg gaia) also affect refunding. change the rule.
     "heal others by 60 HP/s by crouching near them.\neach player healed gives you $100/s.\nyou deal 75% more damage to faction enemies and blizzcoin miners. kill them to earn money and faction points.\nyou regen 20 HP/s while crouching and start with 25% less damage taken & dealt.\nhealing faction mates only grants half the money & faction points.",
     "heal for 10% of dealt damage.\nfeed the blood god to advance your faction level.\nit increases lifesteal to 40% and gives 30% more money.\nhalf of damage dealt contributes to your faction goal.",
-    "when you get a killing blow your held money increases by 10% and you earn 40% more money.\nall this extra money is also added to the bank.\nhowever enemies steal 50% more money from killing you if you have more money than them.\nbank interest is 10%/s up to $400/s.",
+    "when you get a killing blow your held money increases by 10% and you earn 40% more money.\nall this extra money is also added to the bank.\nhowever enemies steal 50% more money from killing you if you have more money than them.\nbank interest is 10%/s up to $40000/s.",
     "gain 50% more money from quests and 40% ult charge upon completing them.\nwhen mining blizzcoin you count as 1.5 players.\nyour melee hacks enemies briefly.\ndelay before robbing the bank is reduced to 2s."
 ]
 globalvar factMembers = [0, 0, 0, 0] # NOTE this goes below 0 sometimes for some reason
@@ -94,7 +94,7 @@ globalvar factColors = [Color.GREEN, Color.RED, Color.YELLOW, Color.SKY_BLUE]
 ### shop ###
 globalvar shopIcons = [
     abilityIconString(Hero.GENJI, Button.ULTIMATE),
-    abilityIconString(Hero.DVA, Button.ABILITY_2),
+    # abilityIconString(Hero.DVA, Button.ABILITY_2),
     iconString(Icon.HEART),
     abilityIconString(Hero.BRIGITTE, Button.ABILITY_2),
     abilityIconString(Hero.BAPTISTE, Button.ABILITY_1),
@@ -110,7 +110,7 @@ globalvar shopIcons = [
 ]
 globalvar shopItems = [
     "damage dealt",
-    "ammo capacity",
+    # "ammo capacity",
     "max health",
     "armor",
     "healing received",
@@ -143,7 +143,7 @@ globalvar baseStats = [
 ]
 globalvar shopUnits = [
     "%", # dmg
-    "%", # ammo
+    # "%", # ammo
     "%", # hp
     "hp", # amore
     "%", # heal
@@ -183,7 +183,7 @@ globalvar marketItems = [
     "{} barriero rocher".format(abilityIconString(Hero.SYMMETRA, Button.ULTIMATE)), # barrier
     "{} kick kat".format(abilityIconString(Hero.DOOMFIST, Button.SECONDARY_FIRE)), # kb dealt
     "{} knockstoppers".format(abilityIconString(Hero.ORISA, Button.ABILITY_1)), # kb received
-    "{} pez minigun".format(abilityIconString(Hero.PHARAH, Button.ULTIMATE)),
+    # "{} pez minigun".format(abilityIconString(Hero.PHARAH, Button.ULTIMATE)),
     "{} fruit rollouts".format(abilityIconString(Hero.SOLDIER, Button.ABILITY_1)) # extra speed
 ]
 globalvar marketDescs = [
@@ -194,7 +194,7 @@ globalvar marketDescs = [
     "make your shields & walls bigger.\neach level increases size by 1%.",
     "take better control of your personal space.\neach level increases knockback dealt by 1%.",
     "become resistant to knockbacks.\neach level decreases knockback received by 1%.",
-    "bring touhou to overwatch with [{}] + [{}].\nonly works for heroes with burst fire ({}, {}, {}, etc.)\neach level increases effect duration by 0.5s.".format(Button.INTERACT, Button.MELEE, heroIcon(Hero.GENJI), heroIcon(Hero.LUCIO), abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE), abilityIconString(Hero.DVA, Button.ABILITY_2)),
+    # "bring touhou to overwatch with [{}] + [{}].\nonly works for heroes with burst fire ({}, {}, {}, etc.)\neach level increases effect duration by 0.5s.".format(Button.INTERACT, Button.MELEE, heroIcon(Hero.GENJI), heroIcon(Hero.LUCIO), abilityIconString(Hero.ECHO, Button.SECONDARY_FIRE), abilityIconString(Hero.DVA, Button.ABILITY_2)),
     "go even faster.\neach level adds 1% to your\ncurrent movement speed."
 ]
 globalvar baseMarketStats = [
@@ -312,7 +312,6 @@ playervar questProgress
 playervar questGoal
 
 ### mines ###
-playervar bloodDoT
 playervar bloodFx
 playervar mineFx
 

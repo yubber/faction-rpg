@@ -1,7 +1,7 @@
 settings {
     "main": {
         "description": "join a faction & get unique powers to complete its supernatural goals. features catchup mechanics, diverse ways to make money & a clean interface.\n\nyubz made it\nuse code GJWAZ to get the latest updates",
-        "modeName": "rpg with factions"
+        "modeName": "\"minecraft\" with factions"
     },
     "lobby": {
         "allowPlayersInQueue": true,
@@ -27,22 +27,38 @@ settings {
             "dva": {
                 "spawnWithoutMech": true
             },
-            "sombra": {
-                "ability1Cooldown%": 150,
-                "ability2Cooldown%": 200
+            "mercy": {
+                "combatUltGen%": 17,
+                "passiveUltGen%": 500,
+                "ultGen%": 300
+            },
+            "zenyatta": {
+                "combatUltGen%": 25,
+                "passiveUltGen%": 500,
+                "ultGen%": 200
+            },
+            "general": {
+                "damageDealt%": 500,
+                "healingReceived%": 500,
+                "health%": 500,
+                "projectileSpeed%": 500,
+                "combatUltGen%": 50,
+                "passiveUltGen%": 500,
+                "passiveHealthRegen": false
             }
         }
     }
 }
 
 #!include "vars.opy"
-#!include "balance.opy"
 
 # update crypto text too bc it uses localplayer
 #!define MoneyMult (factLevels[eventPlayer.faction] * 0.05 + 1)
 #!define FactPointsMult (eventPlayer.stats[STATS.OBJECTIVE]/100)
 #!define NumQuests [QUEST_TYPE.BLOOD, QUEST_TYPE.DAMAGE, QUEST_TYPE.CRYPTO]
 #!define ImportCode "GJWAZ"
+
+#!include "balance.opy"
 
 ### inits ###
 def shut():
@@ -96,7 +112,7 @@ def pickFaction():
 	eventPlayer.option = 0
 	eventPlayer.faction = -1
 	eventPlayer.startCamera(factCams[eventPlayer.option], factSpawns[eventPlayer.option], 20)
-	waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 9999)
+	waitUntil(eventPlayer.isHoldingButton(Button.JUMP), 99999)
 	eventPlayer.faction = eventPlayer.option
     wait(0.08)
 	if factMembers[eventPlayer.faction] <= 0:
@@ -154,10 +170,10 @@ def questComplete():
 
 def setShopStats(): # does not affect bourgeois banking
     eventPlayer.setMoveSpeed(eventPlayer.stats[STATS.MOVESPEED])
-    eventPlayer.setMaxHealth(eventPlayer.stats[STATS.HEALTH])
-    eventPlayer.setDamageDealt(eventPlayer.stats[STATS.DAMAGE])
+    eventPlayer.setMaxHealth(eventPlayer.stats[STATS.HEALTH] * 0.2)
+    eventPlayer.setDamageDealt(eventPlayer.stats[STATS.DAMAGE] * 0.2)
     eventPlayer.setDamageReceived(abs(eventPlayer.stats[STATS.DEFENSE]))
-    eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING])
+    eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING] * 0.2)
     eventPlayer.setProjectileGravity(-0.25 * eventPlayer.stats[STATS.PROJECTILE] + 125)
     eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
     wait()
@@ -166,8 +182,8 @@ def setShopStats(): # does not affect bourgeois banking
         eventPlayer.addHealthPool(Health.ARMOR, eventPlayer.stats[STATS.ARMOR], true, false)
         eventPlayer.armorId = getLastCreatedHealthPool()
     # set ammo
-    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
-    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
+    # eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
+    # eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
 
 def setMarketStats():
     eventPlayer.startScalingSize(1 - eventPlayer.marketStats[MARKET.SHRINK]/100, false)
@@ -177,6 +193,7 @@ def setMarketStats():
     eventPlayer.setKnockbackDealt(eventPlayer.marketStats[MARKET.STEADFAST])
 
 rule "global init":
+	# print(hostPlayer.mineFx == null)
     stealPortion = createWorkshopSetting(float[0.05:0.5], "gameplay", "portion of money stolen on killing blows", 0.15)
     bestPlayer = random.choice(getAllPlayers())
 
@@ -204,7 +221,10 @@ rule "global init":
     wait()
     ### crypto ###
     createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.VIOLET, CryptoPos + 12*Vector.DOWN, CryptoRadius, EffectReeval.VISIBILITY)
-    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner (join now for ${}/s)".format(CryptoBaseMoney, CryptoAddMoney, (CryptoBaseMoney + (minerCount + 0.5 if localPlayer.faction == FACTIONS.SOMBRUH else minerCount)*CryptoAddMoney) * (factLevels[localPlayer.faction] * 0.05 + 1)), CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
+    createInWorldText(getAllPlayers(), "mine blizzcoin and ruin the environment for profit!\n${}/s + ${}/s per additional miner {}".format(
+		CryptoBaseMoney, CryptoAddMoney,
+		"(join now for ${}/s)".format((CryptoBaseMoney + (minerCount + (1.5 if localPlayer.faction == FACTIONS.SOMBRUH else 1))*CryptoAddMoney) * (factLevels[localPlayer.faction] * 0.05 + 1)) if localPlayer.mineFx == null else f"(currently ${(CryptoBaseMoney + (minerCount)*CryptoAddMoney) * (factLevels[localPlayer.faction] * 0.05 + 1)}/s)"),
+		CryptoPos + 7*Vector.UP, 1.5, Clip.SURFACES, WorldTextReeval.VISIBILITY_AND_STRING, Color.WHITE, SpecVisibility.DEFAULT)
 
     ### bank ###
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, BankPos, 5.5, EffectReeval.VISIBILITY)
@@ -231,14 +251,14 @@ rule "global init":
     factPoints.append(getLastCreatedEntity())
 
     ### time HUD + shop prompt ###
-    hudSubtext(getAllPlayers(), "{}:{}{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", 0 if getTotalTimeElapsed()/60 % 60 < 10 else l"", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
-    hudSubheader(getAllPlayers(), "stand still while holding [{}] and [{}] to enter the shop\nuse import code {} for the latest version\n\n".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT), ImportCode), HudPosition.LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudSubtext(getAllPlayers(), "{}:{}{}:{}{} (game ends at 4:30:00)".format(floor(getTotalTimeElapsed()/3600) if getTotalTimeElapsed() > 3600 else "00", 0 if getTotalTimeElapsed()/60 % 60 < 10 else l"", floor(getTotalTimeElapsed() / 60 % 60), 0 if getTotalTimeElapsed() % 60 < 10 else l"", floor(getTotalTimeElapsed() % 60)), HudPosition.ACTUALLY_LEFT, -1, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+    hudSubheader(localPlayer if localPlayer.level < 50 else null, "stand still while holding [{}] and [{}] to enter the shop\nuse import code {} for the latest version\n".format(buttonString(Button.CROUCH), buttonString(Button.INTERACT), ImportCode), HudPosition.ACTUALLY_LEFT, -0.9, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
     wait()
     ### player money/faction/level/quest HUD ###
-    hudText(localPlayer, heroIcon(localPlayer.getCurrentHero()), "level {}".format(localPlayer.level), b"${} ".format(localPlayer.money), HudPosition.LEFT, 0, Color.BLUE, Color.BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+    hudText(localPlayer, heroIcon(localPlayer.getCurrentHero()), "level {}".format(localPlayer.level), b"${} ".format(localPlayer.money), HudPosition.ACTUALLY_LEFT, 0, Color.BLUE, Color.BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
     hudText(localPlayer, abilityIconString(Hero.BRIGITTE, Button.ULTIMATE), "{} | {}% income bonus".format(factNames[localPlayer.faction], factLevels[localPlayer.faction]*5),
-        "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE if factPoints[localPlayer.faction] < factLvUp[localPlayer.faction] else Color.ROSE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
+        "faction goal reached! return to your faction's base to level it up." if factPoints[localPlayer.faction] >= factLvUp[localPlayer.faction] else "faction points: {} / {}".format(factPoints[localPlayer.faction], factLvUp[localPlayer.faction]), HudPosition.ACTUALLY_LEFT, 0, Color.TURQUOISE, Color.TURQUOISE, Color.WHITE if factPoints[localPlayer.faction] < factLvUp[localPlayer.faction] else Color.ROSE, HudReeval.VISIBILITY_AND_STRING, SpecVisibility.DEFAULT)
 
     wait()
     progressBarHud(localPlayer, 100 * localPlayer.questProgress / localPlayer.questGoal,
@@ -251,7 +271,7 @@ rule "global init":
     #### event ###
     hudText(localPlayer if localPlayer.faction >= 0 and ((localPlayer in shoppers) == (localPlayer in marketers)) else [], "\&fullwidth_space;{} ({}s)\&fullwidth_space;".format(eventText, round(eventTime)), "", " \n ", HudPosition.TOP, 0, Color.LIME_GREEN if eventType != -1 else Color.GRAY, Color.GRAY, Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR, SpecVisibility.ALWAYS)
     ### dakka hud ###
-    hudSubtext(getAllPlayers(), " ", HudPosition.LEFT, 1, Color.GRAY, HudReeval.VISIBILITY)
+    hudSubtext(getAllPlayers(), " ", HudPosition.ACTUALLY_LEFT, 1, Color.GRAY, HudReeval.VISIBILITY)
     createProgressBarInWorldText(localPlayer if localPlayer.dakkaTime > 0 else [],
         100 * localPlayer.dakkaTime / (localPlayer.marketStats[MARKET.DAKKA]/2), "rapid fire ({}s left) | [{}] to cancel".format(round(localPlayer.dakkaTime), buttonString(Button.INTERACT)),
         updateEveryTick(
@@ -261,7 +281,7 @@ rule "global init":
 
     hudText(localPlayer if localPlayer.marketStats[MARKET.DAKKA] else [], abilityIconString(Hero.PHARAH, Button.ULTIMATE),
         "rapid fire [{}] + [{}] | lasts {}s, cd {}s".format(buttonString(Button.INTERACT), buttonString(Button.MELEE), localPlayer.marketStats[MARKET.DAKKA]/2, RapidCd), "ready" if localPlayer.dakkaTime >= 0 else "cooldown {}s".format(round(abs(localPlayer.dakkaTime))),
-        HudPosition.LEFT, 1.1, Color.ORANGE, Color.ORANGE, Color.YELLOW if localPlayer.dakkaTime >= 0 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR)
+        HudPosition.ACTUALLY_LEFT, 1.1, Color.ORANGE, Color.ORANGE, Color.YELLOW if localPlayer.dakkaTime >= 0 else Color.GRAY, HudReeval.VISIBILITY_STRING_AND_COLOR)
 
     ### factions ###
     for i_init in range(len(factSpawns)):
@@ -396,7 +416,7 @@ rule "player init":
         eventPlayer.faction = -2
         eventPlayer.startCamera(vect(-24.8, -0.1, 20.2), vect(-634.6, -41.2, 811.7), 15)
         wait(0.16)
-        waitUntil(eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE), 9999)
+        waitUntil(eventPlayer.isHoldingButton(Button.PRIMARY_FIRE) or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE), 99999)
         if eventPlayer.isHoldingButton(Button.PRIMARY_FIRE):
             # show tuto
             for eventPlayer.option in range(len(tutoStrings)):
@@ -416,7 +436,6 @@ rule "player init":
             wait(2)
         # pick faction then resume
         pickFaction()
-    chase(eventPlayer.cautTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
 
     for eventPlayer.option in range(getNumberOfPlayers(Team.ALL)):
         if (eventPlayer.option.money + eventPlayer.option.level * 100) < (5000 + bestPlayer.level * 60):
@@ -427,7 +446,7 @@ rule "player init":
     eventPlayer.option = 0
 
     # catchup
-    eventPlayer.money = 5000 + bestPlayer.level * 65
+    eventPlayer.money = 5000 + bestPlayer.level * 30
 
     # event update
     switch eventType:
@@ -463,8 +482,8 @@ rule "shop enter":
     eventPlayer.startCamera(ShopCamPos, ShopLookPos, 20)
     shut()
     wait() # reset ammo
-    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*100/eventPlayer.stats[STATS.AMMO])
-    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*100/eventPlayer.stats[STATS.AMMO])
+    # eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*100/eventPlayer.stats[STATS.AMMO])
+    # eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*100/eventPlayer.stats[STATS.AMMO])
     playEffect(eventPlayer, DynamicEffect.GOOD_PICKUP_EFFECT, Color.WHITE, eventPlayer, 50)
     shoppers.append(eventPlayer)
 
@@ -576,76 +595,55 @@ rule "shop leave":
 
 ### game behaviors ###
 # blood god
-rule "enter blood god":
+macro bloodDelay = 0.36
+rule "blood god":
     @Event eachPlayer
-    @Condition eventPlayer.bloodDoT == null
     @Condition eventPlayer.hasSpawned()
     @Condition eventPlayer.isAlive()
-    @Condition distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) < BloodRadius
-    eventPlayer.startDoT(null, 9999,  (eventPlayer.getMaxHealth() * 0.05) * 100 / -eventPlayer.stats[STATS.DEFENSE])
-    eventPlayer.bloodDoT = getLastDoT()
-    createBeam(getAllPlayers(), Beam.BAD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
-        vect(131.1, 14.5, 26.1) + Vector.UP* 0.5*sin(2*getTotalTimeElapsed() % 6.283), Color.RED, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-    eventPlayer.bloodFx = getLastCreatedEntity()
+    if distance(eventPlayer.getPosition(), vect(131.1, 11, 26.1)) < BloodRadius and eventPlayer.isAlive():
+		if eventPlayer.bloodFx == null: # init
+			smallMessage(eventPlayer, b"  +${}/s ".format(BloodFormula/bloodDelay))
+    		createBeam(getAllPlayers(), Beam.BAD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
+        		vect(131.1, 14.5, 26.1) + Vector.UP* 0.5*sin(2*getTotalTimeElapsed() % 6.283), Color.RED, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+			eventPlayer.bloodFx = getLastCreatedEntity()
 
-    # give money
-    smallMessage(eventPlayer, b" ${}/s ".format(BloodFormula))
-    chase(eventPlayer.money, 9999999999, rate=BloodFormula, ChaseReeval.DESTINATION_AND_RATE)
-    if eventPlayer.questType == QUEST_TYPE.BLOOD:
-        chase(eventPlayer.questProgress, 99999999999, rate=1, ChaseReeval.DESTINATION_AND_RATE)
-    if eventPlayer.faction == FACTIONS.BLOOD:
-        eventPlayer.buyqty = 0
-        chase(eventPlayer.buyqty, 99999999999, rate=0.1*eventPlayer.getMaxHealth(), ChaseReeval.DESTINATION_AND_RATE)
+		damage(eventPlayer, null, (eventPlayer.getMaxHealth() * 0.05) * 100 / -eventPlayer.stats[STATS.DEFENSE] * bloodDelay)
+		eventPlayer.money += BloodFormula
 
-rule "leave blood god":
-    @Event eachPlayer
-    # @Condition eventPlayer.hasSpawned()
-    @Condition eventPlayer.bloodDoT != null
-    @Condition (distance(eventPlayer, vect(131.1, 11, 26.1)) > BloodRadius) or (eventPlayer.isDead())
-    wait()
-    stopDoT(eventPlayer.bloodDoT)
-    stopChasingVariable(eventPlayer.money)
-    stopChasingVariable(eventPlayer.buyqty)
-    destroyEffect(eventPlayer.bloodFx)
+		if eventPlayer.questType == QUEST_TYPE.BLOOD:
+			eventPlayer.questProgress += bloodDelay
+		if eventPlayer.faction == FACTIONS.BLOOD: # forgor why 0.7
+        	factPoints[eventPlayer.faction] += 0.7 * FactCompensationMult * eventPlayer.getMaxHealth() * 0.1 * FactPointsMult * bloodDelay
 
-    eventPlayer.bloodDoT = null
-    eventPlayer.bloodFx = null
+	else if eventPlayer.bloodFx != null: # exit
+		destroyEffect(eventPlayer.bloodFx)
+		eventPlayer.bloodFx = null
 
-    # buyqty is also used to track health given to blood god. sorry not sorry
-    if eventPlayer.faction == FACTIONS.BLOOD:
-        factPoints[eventPlayer.faction] += 0.7 * FactCompensationMult * eventPlayer.buyqty * FactPointsMult
-        eventPlayer.buyqty = 0
-    if eventPlayer.questType == QUEST_TYPE.BLOOD:
-        stopChasingVariable(eventPlayer.questProgress)
+	wait(bloodDelay)
+	if ruleCondition:
+		loop()
 
 # crypto
-rule "enter crypto mine":
+macro cryptoDelay = 0.36
+rule "crypto mine":
     @Event eachPlayer
-    @Condition eventPlayer.mineFx == null
-    @Condition eventPlayer.isAlive()
-    @Condition distance(eventPlayer, CryptoPos) <= CryptoRadius
-    # crypto fix
-    if len(getPlayersInRadius(CryptoPos, CryptoRadius, Team.ALL, LosCheck.OFF)) == 1:
-        minerCount = 0
-    minerCount += 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
-    createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
-        vect(184.15, 27.28, 40.57), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-    eventPlayer.mineFx = getLastCreatedEntity()
-    chase(eventPlayer.money, 999999999, rate=MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
-    if eventPlayer.questType == QUEST_TYPE.CRYPTO:
-        chase(eventPlayer.questProgress, eventPlayer.questGoal, rate=MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)), ChaseReeval.DESTINATION_AND_RATE)
+    if (distance(eventPlayer.getPosition(), CryptoPos) <= CryptoRadius) and eventPlayer.isAlive():
+		if eventPlayer.mineFx == null: # init
+			minerCount += 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
+			createBeam(getAllPlayers(), Beam.GOOD, updateEveryTick(eventPlayer.getPosition() + eventPlayer.getEyePosition())/2,
+				vect(184.15, 27.28, 40.57), Color.BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+			eventPlayer.mineFx = getLastCreatedEntity()
+		eventPlayer.money += MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)) * cryptoDelay
+		if eventPlayer.questType == QUEST_TYPE.CRYPTO:
+			eventPlayer.questProgress += MoneyMult * (CryptoBaseMoney + CryptoAddMoney * max(0, minerCount-1)) * cryptoDelay
+	else if eventPlayer.mineFx != null:
+		minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
+		destroyEffect(eventPlayer.mineFx)
+		eventPlayer.mineFx = null
 
-rule "leave crypto mine":
-    @Event eachPlayer
-    @Condition eventPlayer.mineFx != null
-    @Condition eventPlayer.isDead() or distance(eventPlayer, CryptoPos) > CryptoRadius
-    minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
-    destroyEffect(eventPlayer.mineFx)
-    eventPlayer.mineFx = null
-    stopChasingVariable(eventPlayer.money)
-    if eventPlayer.questType == QUEST_TYPE.CRYPTO:
-        stopChasingVariable(eventPlayer.questProgress)
-
+	wait(cryptoDelay)
+	if ruleCondition:
+		loop()
 # beg
 rule "beg":
     @Event eachPlayer
@@ -698,7 +696,7 @@ rule "moon reward + bank increase":
         heal(moonOwner, null, 5)
         moonOwner.money += 0.5*MoonFormula # values also shown in moon claim text
 
-        factPoints[FACTIONS.RICH] += min(400, 0.05* factPoints[FACTIONS.RICH])/2
+        factPoints[FACTIONS.RICH] += min(40000, 0.05* factPoints[FACTIONS.RICH])/2
         wait(0.5)
     while RULE_CONDITION
 
@@ -855,45 +853,6 @@ rule "flight":
 		wait(0.064)
 	while RULE_CONDITION
 
-rule "rapid fire input":
-	@Event eachPlayer
-	@Condition eventPlayer.isAlive()
-	@Condition eventPlayer.marketStats[MARKET.DAKKA]
-    @Condition eventPlayer.isHoldingButton(Button.INTERACT) and eventPlayer.isHoldingButton(Button.MELEE)
-    if eventPlayer.dakkaTime < 0: # cooldown
-        smallMessage(eventPlayer, "rapid fire not ready (wait {}s)".format(round(abs(eventPlayer.dakkaTime))))
-    elif eventPlayer.dakkaTime == 0: # activate
-        eventPlayer.dakkaTime = eventPlayer.marketStats[MARKET.DAKKA]/2
-        chase(eventPlayer.dakkaTime, 0, rate=1, ChaseReeval.DESTINATION_AND_RATE)
-        playEffect(getAllPlayers(), DynamicEffect.GOOD_PICKUP_EFFECT, Color.ORANGE, eventPlayer.getEyePosition(), 1.5)
-        playEffect(getAllPlayers(), DynamicEffect.BUFF_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 30)
-        # createEffect(getAllPlayers(), Effect.SPARKLES, Color.ORANGE, eventPlayer, 1.5, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
-        # eventPlayer.dakkaFx = getLastCreatedEntity()
-        wait(eventPlayer.dakkaTime) # can't abort or won't set cd
-        eventPlayer.dakkaTime = -RapidCd
-
-rule "dakkadakkadakka":
-    @Event eachPlayer
-    @Condition eventPlayer.dakkaTime > 0
-    do:
-        eventPlayer.setProjectileSpeed(eventPlayer.stats[STATS.PROJECTILE])
-        playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION, Color.ORANGE, eventPlayer, 2)
-        wait(0.112)
-    while RULE_CONDITION
-
-rule "rapid fire end":
-    @Event eachPlayer
-    @Condition (eventPlayer.dakkaTime < 0) or (eventPlayer.isHoldingButton(Button.INTERACT) and eventPlayer.dakkaTime > 0)
-    if eventPlayer.dakkaTime > 0:
-        wait(0.56, Wait.ABORT_WHEN_FALSE)
-        # smallMessage(eventPlayer, "[{}] hold to cancel rapid fire...".format(buttonString(Button.INTERACT)))
-        wait(0.56, Wait.ABORT_WHEN_FALSE)
-        eventPlayer.dakkaTime = -RapidCd
-    # destroyEffect(eventPlayer.dakkaFx)
-    playEffect(getAllPlayers(), DynamicEffect.BAD_EXPLOSION, Color.ORANGE, eventPlayer, 1.5)
-    playEffect(getAllPlayers(), DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, eventPlayer, 80)
-    # eventPlayer.dakkaFx = 0
-
 rule "min ult":
     @Event eachPlayer
     @Condition eventPlayer.isAlive()
@@ -912,14 +871,14 @@ rule "apply hack & caut var":
     and (eventDamage + victim.getHealth() >= 0.5 * victim.getMaxHealth())):
         victim.setStatusEffect(eventPlayer, Status.HACKED, eventPlayer.marketStats[MARKET.HACK]/2)
 
-    if victim.cautTime < eventPlayer.marketStats[MARKET.CAUT]/2:
-        victim.cautTime = eventPlayer.marketStats[MARKET.CAUT]/2
+    if victim.cautTime < getTotalTimeElapsed() + eventPlayer.marketStats[MARKET.CAUT]/2:
+        victim.cautTime = getTotalTimeElapsed() + eventPlayer.marketStats[MARKET.CAUT]/2
 
 rule "apply caut":
     @Event eachPlayer
-    @Condition eventPlayer.cautTime > 0
+    @Condition eventPlayer.cautTime > getTotalTimeElapsed()
     eventPlayer.setHealingReceived(0.5 * eventPlayer.stats[STATS.HEALING])
-    waitUntil(eventPlayer.cautTime <= 0, 5)
+    waitUntil(eventPlayer.cautTime <= getTotalTimeElapsed(), 5)
     eventPlayer.setHealingReceived(eventPlayer.stats[STATS.HEALING])
 
 # black market
@@ -1012,7 +971,7 @@ rule "black market init & rotate":
         Color.BLUE,
         SpecVisibility.DEFAULT)
 
-    waitUntil(i_init == 0.1, 9999)
+    waitUntil(i_init == 0.1, 99999)
     for i_init in range(MarketLen):
         createInWorldText(
         localPlayer if localPlayer in marketers else [], evalOnce(marketItems[i_init]),
@@ -1183,12 +1142,12 @@ rule "gen events":
                 case EVENTS.HERO:
                     for eventDetail in range(getNumberOfPlayers(Team.ALL)):
                         # reset ammo
-                        eventDetail.setMaxAmmo(0, eventDetail.getMaxAmmo(0)*100/eventDetail.stats[STATS.AMMO])
-                        eventDetail.setMaxAmmo(1, eventDetail.getMaxAmmo(1)*100/eventDetail.stats[STATS.AMMO])
+                        # eventDetail.setMaxAmmo(0, eventDetail.getMaxAmmo(0)*100/eventDetail.stats[STATS.AMMO])
+                        # eventDetail.setMaxAmmo(1, eventDetail.getMaxAmmo(1)*100/eventDetail.stats[STATS.AMMO])
                         getAllPlayers()[eventDetail].eventVar = getAllPlayers()[eventDetail].getCurrentHero()
                         # set ammo
-                        getAllPlayers()[eventDetail].setMaxAmmo(0, getAllPlayers()[eventDetail].getMaxAmmo(0)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
-                        getAllPlayers()[eventDetail].setMaxAmmo(1, getAllPlayers()[eventDetail].getMaxAmmo(1)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
+                        # getAllPlayers()[eventDetail].setMaxAmmo(0, getAllPlayers()[eventDetail].getMaxAmmo(0)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
+                        # getAllPlayers()[eventDetail].setMaxAmmo(1, getAllPlayers()[eventDetail].getMaxAmmo(1)*getAllPlayers()[eventDetail].stats[STATS.AMMO]/100)
                         wait()
                     eventDetail = random.choice(getAllHeroes())
                     eventText = "event: {} hero swap".format(heroIcon(eventDetail))
@@ -1204,9 +1163,9 @@ rule "gen events":
                     for eventType in range(getNumberOfPlayers(Team.ALL)):
                         if getAllPlayers()[eventType].eventVar != null:
                             getAllPlayers()[eventType].startForcingHero(getAllPlayers()[eventType].eventVar)
-                            if getAllPlayers()[eventType].getCurrentHero() != eventDetail:
-                                getAllPlayers()[eventType].setMaxAmmo(0, getAllPlayers()[eventType].getMaxAmmo(0)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
-                                getAllPlayers()[eventType].setMaxAmmo(1, getAllPlayers()[eventType].getMaxAmmo(1)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                            # if getAllPlayers()[eventType].getCurrentHero() != eventDetail:
+                                # getAllPlayers()[eventType].setMaxAmmo(0, getAllPlayers()[eventType].getMaxAmmo(0)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
+                                # getAllPlayers()[eventType].setMaxAmmo(1, getAllPlayers()[eventType].getMaxAmmo(1)*getAllPlayers()[eventType].stats[STATS.AMMO]/100)
                         wait()
                     break
                 case EVENTS.BOSS:
@@ -1330,8 +1289,8 @@ rule "respawn":
     # @Condition eventPlayer.isOnGround() # cheesy detect spawned vs demeched
     wait(0.048)
     eventPlayer.teleport(factSpawns[eventPlayer.faction])
-    eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
-    eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
+    # eventPlayer.setMaxAmmo(0, eventPlayer.getMaxAmmo(0)*eventPlayer.stats[STATS.AMMO]/100)
+    # eventPlayer.setMaxAmmo(1, eventPlayer.getMaxAmmo(1)*eventPlayer.stats[STATS.AMMO]/100)
     wait(0.032)
 
     if eventPlayer.getCurrentHero() == Hero.DVA and eventPlayer.isInAlternateForm():
@@ -1453,12 +1412,14 @@ rule "mercy rez":
     eventPlayer.setAbilityCooldown(Button.ABILITY_2, 20)
 rule "damage when stat > 10000":
     @Event playerDealtDamage
+	@Disabled
     @Condition eventDamage > 0
     @Condition eventAbility != null
     @Condition eventPlayer.stats[STATS.DAMAGE] > 10000
     damage(victim, eventPlayer, eventDamage * (eventPlayer.stats[STATS.DAMAGE] - 10000)/100)
 rule "heal when stat > 10000":
     @Event playerReceivedHealing
+	@Disabled
     @Condition eventHealing > 0
     @Condition eventAbility != null or eventWasHealthPack
     @Condition eventPlayer.stats[STATS.HEALING] > 1000
@@ -1470,7 +1431,7 @@ rule "big door to lumerico barrier":
     @Condition eventPlayer.getPosition().y <= 15.5
     # bigMessage(eventPlayer, "debug phase")
     eventPlayer.disableEnvironmentCollision(false)
-    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) > 3.2 or eventPlayer.getPosition().y > 15.5, 9999)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(138.9, 0, 28.2)) > 3.2 or eventPlayer.getPosition().y > 15.5, 99999)
     eventPlayer.enableEnvironmentCollision()
 
 rule "small door to lumerico barrier":
@@ -1478,7 +1439,7 @@ rule "small door to lumerico barrier":
     @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) <= 1.15
     @Condition eventPlayer.getPosition().y <= 15
     eventPlayer.disableEnvironmentCollision(false)
-    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) > 1.15 or eventPlayer.getPosition().y > 15, 9999)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(140.9, 0, 47.5)) > 1.15 or eventPlayer.getPosition().y > 15, 99999)
     eventPlayer.enableEnvironmentCollision()
 
 rule "small door from bank barrier":
@@ -1486,10 +1447,10 @@ rule "small door from bank barrier":
     @Condition distance(eventPlayer.getPosition() * vect(1,0,1), vect(159.57, 0, 5.97)) <= 1.3
     @Condition eventPlayer.getPosition().y <= 12
     eventPlayer.disableEnvironmentCollision(false)
-    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(159.57, 0, 5.97)) > 1.3 or eventPlayer.getPosition().y > 12, 9999)
+    waitUntil(distance(eventPlayer.getPosition() * vect(1,0,1), vect(159.57, 0, 5.97)) > 1.3 or eventPlayer.getPosition().y > 12, 99999)
     eventPlayer.enableEnvironmentCollision()
 
-rule "player leave cleanup":
+rule "player leave cleanup": # TODO this doesn't fix crypto mine
     @Event playerLeft
     # clean huds, fx, etc
     shoppers.remove(eventPlayer)
@@ -1499,18 +1460,17 @@ rule "player leave cleanup":
         factMembers[i_init] = len([x for x in getAllPlayers() if x.faction == i_init])
 
 	destroyEffect(eventPlayer.bloodFx)
-	stopDoT(eventPlayer.bloodDoT)
     destroyInWorldText(eventPlayer.hudId)
 
     if eventPlayer == moonOwner:
         moonOwner = null
 
-    if eventPlayer == bestPlayer:
-        bestPlayer = sorted(getAllPlayers(), lambda x: x.level).last()
+	bestPlayer = sorted(getAllPlayers(), lambda x: x.level).last()
 
     if eventPlayer.mineFx != null:
         destroyEffect(eventPlayer.mineFx)
         minerCount -= 1.5 if eventPlayer.faction == FACTIONS.SOMBRUH else 1
+		eventPlayer.mineFx = null
     # destroyEffect(eventPlayer.dakkaFx)
     # events
     if eventType == EVENTS.BOSS and eventPlayer == eventDetail: # if event player is the boss
@@ -1550,9 +1510,10 @@ rule "miners oopsie":
     wait()
     playEffect([x for x in getAllPlayers() if x.mineFx != null], DynamicEffect.RING_EXPLOSION_SOUND, Color.WHITE, CryptoPos, 90)
     wait()
-    minerCount = len([x for x in getPlayersInRadius(CryptoPos, CryptoRadius, Team.ALL, LosCheck.OFF) if x.mineFx != null])
+    minerCount = max(0,len(getPlayersInRadius(CryptoPos, CryptoRadius, Team.ALL, LosCheck.OFF)))
     wait()
-    smallMessage(getAllPlayers(), "{} crypto mine bugged out. if you're mining, reenter it to get the right amount of money.".format(iconString(Icon.WARNING)))
+    # smallMessage(getAllPlayers(), "{} crypto mine bugged out. if you're mining, reenter it to get the right amount of money.".format(iconString(Icon.WARNING)))
+	wait(1)
 
 rule "anti crash":
     @Condition not antiCrashActivated
